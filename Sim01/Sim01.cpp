@@ -39,6 +39,7 @@ bool shouldLogToMonitor = false;
 
 bool ScanConfigFile (string cfgFileName);
 string ScanNextLine (ifstream& sentStream);
+void OutputConfigFileData ();
 
 int main (int argc, char* argv[])
 {
@@ -46,7 +47,7 @@ int main (int argc, char* argv[])
 	 if (argc < 2) 
 	 {
         // Tell the user how to run the program
-        cout << "Usage: " << argv[0] << " NAME_OF_CONFIG_FILE" << endl;
+        cout << "Usage: " << argv[0] << " NAME_OF_CONFIG_FILE_WITH_EXTENSION" << endl;
 
         return 0;
     } else
@@ -60,6 +61,10 @@ int main (int argc, char* argv[])
     	}
 
     }
+
+    //From this point on, the config file has been read successfully
+
+    OutputConfigFileData ();
 
 	return 0;
 
@@ -308,4 +313,33 @@ string ScanNextLine (ifstream& sentStream)
 
 	return lineStr;
 
+}
+
+void OutputConfigFileData ()
+{
+	cout << "Configuration File Data" << endl;
+	cout << "Monitor = " << monitorDispTime << "ms/cycle" << endl;
+	cout << "Processor = " << processorCycleTime << "ms/cycle" << endl;
+	cout << "Scanner = " << scannerCycleTime << "ms/cycle" << endl;
+	cout << "Hard Drive = " << hardDriveCycleTime << "ms/cycle" << endl;
+	cout << "Keyboard = " << keyboardCycleTime << "ms/cycle" << endl;
+	cout << "Memory = " << memoryCycleTime << "ms/cycle" << endl;
+	cout << "Projector = " << projectorCycleTime << "ms/cycle" << endl;
+	cout << "Logged to: ";
+
+	if (shouldLogToMonitor && shouldLogToFile)
+	{
+		cout << "Monitor and " << logFilePath << endl;
+
+	} else if (shouldLogToMonitor)
+	{
+		cout << "Monitor" << endl;
+
+	} else if (shouldLogToFile)
+	{
+		cout << logFilePath << endl;
+
+	}
+
+	return;
 }
