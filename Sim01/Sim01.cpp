@@ -31,10 +31,11 @@ int processorCycleTime;		//msec
 int scannerCycleTime;		//msec
 int hardDriveCycleTime;		//msec
 int keyboardCycleTime;		//msec
+int memoryCycleTime;		//msec
 int projectorCycleTime;		//msec
 
-bool shouldLogToFile;
-bool shouldLogToConsole;
+bool shouldLogToFile = false;
+bool shouldLogToMonitor = false;
 
 bool ScanConfigFile (string cfgFileName);
 string ScanNextLine (ifstream& sentStream);
@@ -76,6 +77,23 @@ bool ScanConfigFile (string cfgFileName)
 	cfgFile.open (cfgFileName);
 	string currentLine;
 
+	//Temp versions of the config variables, in case of invalid config no global vars will be assigned
+	float versionNumberTEMP;		//Float to allow 1.XX
+
+	string metaDataFilePathTEMP;
+	string logFilePathTEMP;	
+
+	int monitorDispTimeTEMP;		//msec
+	int processorCycleTimeTEMP;		//msec
+	int scannerCycleTimeTEMP;		//msec
+	int hardDriveCycleTimeTEMP;		//msec
+	int keyboardCycleTimeTEMP;		//msec
+	int memoryCycleTimeTEMP;		//msec
+	int projectorCycleTimeTEMP;		//msec
+
+	bool shouldLogToFileTEMP = false;
+	bool shouldLogToMonitorTEMP = false;
+
 	//Check if the file is empty
 	if (cfgFile.eof ())
 	{
@@ -105,7 +123,7 @@ bool ScanConfigFile (string cfgFileName)
 	{
 		if (cfgFile.eof ())
 		{
-			cout << "Error: file ended unexpectedly" << endl;
+			cout << "Error: config file ended unexpectedly" << endl;
 
 			cfgFile.close ();
 			return false;
@@ -118,12 +136,9 @@ bool ScanConfigFile (string cfgFileName)
 
 			if (currentLine.find ("Version/Phase:") != string::npos)
 			{
-				stringstream ss(currentLine);
-				string temp = "Version/Phase: ";
+				sscanf(currentLine.c_str(), "Version/Phase:%f", &versionNumberTEMP);
 
-				ss >> temp >> versionNumber;
-
-				cout << "Found Version " << versionNumber << endl;
+				cout << "Found Version " << versionNumberTEMP << endl;
 
 				//break;
 
@@ -131,25 +146,146 @@ bool ScanConfigFile (string cfgFileName)
 			{
 				//It is easiest to pull this out as a substring, assumes path is < 50 chars long
 				//This assumes there is a space after "File Path:"
-				metaDataFilePath = currentLine.substr (11, 50);
+				metaDataFilePathTEMP = currentLine.substr (11, 50);
 
-				cout << "Found mdf Path: " << metaDataFilePath << endl;
+				cout << "Found mdf Path: " << metaDataFilePathTEMP << endl;
 
 				//break;
 
 			} else if (currentLine.find ("Monitor") != string::npos)
 			{
 
-    			sscanf(currentLine.c_str(), "Monitor display time {msec}:%d", &monitorDispTime);
+    			sscanf(currentLine.c_str(), "Monitor display time {msec}:%d", &monitorDispTimeTEMP);
 
-				cout << "Found Monitor Time " << monitorDispTime << endl;
+				cout << "Found Monitor Time " << monitorDispTimeTEMP << endl;
 
-				break;
+				//break;
+
+			} else if (currentLine.find ("Processor") != string::npos)
+			{
+
+    			sscanf(currentLine.c_str(), "Processor cycle time {msec}:%d", &processorCycleTimeTEMP);
+
+				cout << "Found Processor Time " << processorCycleTimeTEMP << endl;
+
+				//break;
+
+			} else if (currentLine.find ("Scanner") != string::npos)
+			{
+
+    			sscanf(currentLine.c_str(), "Scanner cycle time {msec}:%d", &scannerCycleTimeTEMP);
+
+				cout << "Found Scanner Time " << scannerCycleTimeTEMP << endl;
+
+				//break;
+
+			} else if (currentLine.find ("Hard") != string::npos)
+			{
+
+    			sscanf(currentLine.c_str(), "Hard drive cycle time {msec}:%d", &hardDriveCycleTimeTEMP);
+
+				cout << "Found HDD Time " << hardDriveCycleTimeTEMP << endl;
+
+				//break;
+
+			} else if (currentLine.find ("Keyboard") != string::npos)
+			{
+
+    			sscanf(currentLine.c_str(), "Keyboard cycle time {msec}:%d", &keyboardCycleTimeTEMP);
+
+				cout << "Found Keyboard Time " << keyboardCycleTimeTEMP << endl;
+
+				//break;
+
+			} else if (currentLine.find ("Memory") != string::npos)
+			{
+
+    			sscanf(currentLine.c_str(), "Memory cycle time {msec}:%d", &memoryCycleTimeTEMP);
+
+				cout << "Found Memory Time " << memoryCycleTimeTEMP << endl;
+
+				//break;
+
+			} else if (currentLine.find ("Projector") != string::npos)
+			{
+
+    			sscanf(currentLine.c_str(), "Projector cycle time {msec}:%d", &projectorCycleTimeTEMP);
+
+				cout << "Found Projector Time " << projectorCycleTimeTEMP << endl;
+
+				//break;
+
+			} else if (currentLine.find ("Log:") != string::npos)
+			{
+
+    			if (currentLine.find ("Both") != string::npos)
+    			{
+    				shouldLogToMonitorTEMP = true;
+    				shouldLogToFileTEMP = true;
+
+    				cout << "Logging to both" << endl;
+
+    			} else if (currentLine.find ("Monitor") != string::npos)
+    			{
+    				shouldLogToMonitorTEMP = true;
+
+    				cout << "Logging to monitor only" << endl;
+
+    			} else if (currentLine.find ("File") != string::npos) //"file"?
+    			{
+    				shouldLogToFileTEMP = true;
+
+    				cout << "Logging to file only" << endl;
+
+    			}
+
+				//break;
+
+			} else if (currentLine.find ("Log File") != string::npos)
+			{
+
+    			//It is easiest to pull this out as a substring, assumes path is < 50 chars long
+				//This assumes there is a space after "File Path:"
+				logFilePathTEMP = currentLine.substr (15, 50);
+
+				cout << "Found Log Path: " << logFilePathTEMP << endl;
+
+				//break;
 
 			}
-
-
 		}
+
+	}
+
+	currentLine = ScanNextLine (cfgFile);
+
+	//Check for end line
+	if (currentLine.find ("End Simulator Configuration File") == string::npos)
+	{
+		//First line does not contain start command
+		cout << "Error: No end command" << endl;
+
+		cfgFile.close ();
+		return false;
+
+	} else
+	{
+		//Config file was read successfully, now store all read values into their global vars
+		versionNumber = versionNumberTEMP;
+
+		metaDataFilePath = metaDataFilePathTEMP;
+		logFilePath = logFilePathTEMP;	
+
+		monitorDispTime = monitorDispTimeTEMP;
+		processorCycleTime = processorCycleTimeTEMP;
+		scannerCycleTime = scannerCycleTimeTEMP;
+		hardDriveCycleTime = hardDriveCycleTimeTEMP;
+		keyboardCycleTime = keyboardCycleTimeTEMP;
+		memoryCycleTime = memoryCycleTimeTEMP;
+		projectorCycleTime = projectorCycleTimeTEMP;
+
+		shouldLogToFile = shouldLogToFileTEMP;
+		shouldLogToMonitor = shouldLogToMonitorTEMP;
 
 	}
 
