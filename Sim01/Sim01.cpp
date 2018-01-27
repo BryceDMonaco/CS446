@@ -51,13 +51,9 @@ int main (int argc, char* argv[])
         return 0;
     } else
     {
-    	cout << "Opening config file \"" << argv [1] << "\"..." << endl;
+    	//cout << "Opening config file \"" << argv [1] << "\"..." << endl;
 
-    	if (ScanConfigFile (argv [1]))
-    	{
-    		cout << "Config file read successfully." << endl;
-
-    	} else
+    	if (!ScanConfigFile (argv [1])) //Function returns false if there was an error
     	{
     		cout << "There was an error with the config file." << endl;
 
@@ -138,7 +134,7 @@ bool ScanConfigFile (string cfgFileName)
 			{
 				sscanf(currentLine.c_str(), "Version/Phase:%f", &versionNumberTEMP);
 
-				cout << "Found Version " << versionNumberTEMP << endl;
+				//cout << "Found Version " << versionNumberTEMP << endl;
 
 				//break;
 
@@ -148,7 +144,7 @@ bool ScanConfigFile (string cfgFileName)
 				//This assumes there is a space after "File Path:"
 				metaDataFilePathTEMP = currentLine.substr (11, 50);
 
-				cout << "Found mdf Path: " << metaDataFilePathTEMP << endl;
+				//cout << "Found mdf Path: " << metaDataFilePathTEMP << endl;
 
 				//break;
 
@@ -157,7 +153,7 @@ bool ScanConfigFile (string cfgFileName)
 
     			sscanf(currentLine.c_str(), "Monitor display time {msec}:%d", &monitorDispTimeTEMP);
 
-				cout << "Found Monitor Time " << monitorDispTimeTEMP << endl;
+				//cout << "Found Monitor Time " << monitorDispTimeTEMP << endl;
 
 				//break;
 
@@ -166,7 +162,7 @@ bool ScanConfigFile (string cfgFileName)
 
     			sscanf(currentLine.c_str(), "Processor cycle time {msec}:%d", &processorCycleTimeTEMP);
 
-				cout << "Found Processor Time " << processorCycleTimeTEMP << endl;
+				//cout << "Found Processor Time " << processorCycleTimeTEMP << endl;
 
 				//break;
 
@@ -175,7 +171,7 @@ bool ScanConfigFile (string cfgFileName)
 
     			sscanf(currentLine.c_str(), "Scanner cycle time {msec}:%d", &scannerCycleTimeTEMP);
 
-				cout << "Found Scanner Time " << scannerCycleTimeTEMP << endl;
+				//cout << "Found Scanner Time " << scannerCycleTimeTEMP << endl;
 
 				//break;
 
@@ -184,7 +180,7 @@ bool ScanConfigFile (string cfgFileName)
 
     			sscanf(currentLine.c_str(), "Hard drive cycle time {msec}:%d", &hardDriveCycleTimeTEMP);
 
-				cout << "Found HDD Time " << hardDriveCycleTimeTEMP << endl;
+				//cout << "Found HDD Time " << hardDriveCycleTimeTEMP << endl;
 
 				//break;
 
@@ -193,7 +189,7 @@ bool ScanConfigFile (string cfgFileName)
 
     			sscanf(currentLine.c_str(), "Keyboard cycle time {msec}:%d", &keyboardCycleTimeTEMP);
 
-				cout << "Found Keyboard Time " << keyboardCycleTimeTEMP << endl;
+				//cout << "Found Keyboard Time " << keyboardCycleTimeTEMP << endl;
 
 				//break;
 
@@ -202,7 +198,7 @@ bool ScanConfigFile (string cfgFileName)
 
     			sscanf(currentLine.c_str(), "Memory cycle time {msec}:%d", &memoryCycleTimeTEMP);
 
-				cout << "Found Memory Time " << memoryCycleTimeTEMP << endl;
+				//cout << "Found Memory Time " << memoryCycleTimeTEMP << endl;
 
 				//break;
 
@@ -211,7 +207,7 @@ bool ScanConfigFile (string cfgFileName)
 
     			sscanf(currentLine.c_str(), "Projector cycle time {msec}:%d", &projectorCycleTimeTEMP);
 
-				cout << "Found Projector Time " << projectorCycleTimeTEMP << endl;
+				//cout << "Found Projector Time " << projectorCycleTimeTEMP << endl;
 
 				//break;
 
@@ -223,19 +219,19 @@ bool ScanConfigFile (string cfgFileName)
     				shouldLogToMonitorTEMP = true;
     				shouldLogToFileTEMP = true;
 
-    				cout << "Logging to both" << endl;
+    				//cout << "Logging to both" << endl;
 
     			} else if (currentLine.find ("Monitor") != string::npos)
     			{
     				shouldLogToMonitorTEMP = true;
 
-    				cout << "Logging to monitor only" << endl;
+    				//cout << "Logging to monitor only" << endl;
 
     			} else if (currentLine.find ("File") != string::npos) //"file"?
     			{
     				shouldLogToFileTEMP = true;
 
-    				cout << "Logging to file only" << endl;
+    				//cout << "Logging to file only" << endl;
 
     			}
 
@@ -248,9 +244,16 @@ bool ScanConfigFile (string cfgFileName)
 				//This assumes there is a space after "File Path:"
 				logFilePathTEMP = currentLine.substr (15, 50);
 
-				cout << "Found Log Path: " << logFilePathTEMP << endl;
+				//cout << "Found Log Path: " << logFilePathTEMP << endl;
 
 				//break;
+
+			} else
+			{
+				cout << "Error: Could not find valid config data, perhaps a field is missing?" << endl;
+
+				cfgFile.close ();
+				return false;
 
 			}
 		}
