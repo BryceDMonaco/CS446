@@ -23,7 +23,7 @@ float versionNumber;		//Float to allow 1.XX
 string metaDataFilePath;	//Path to the current mdf, note only ScanConfigFile () can modify this
 string logFilePath;			//Path to the global log file (if one is used)
 
-ifstream metaDataFile;	
+//ifstream metaDataFile;	//Made local variable in meta data run function
 ofstream logFile;
 
 int monitorDispTime;		//msec
@@ -37,8 +37,11 @@ int projectorCycleTime;		//msec
 bool shouldLogToFile = false;
 bool shouldLogToMonitor = false;
 
+bool RunMetaDataFile ();
 bool ScanConfigFile (string cfgFileName);
+bool ParseCommand (string sentCommand);
 string ScanNextLine (ifstream& sentStream);
+string ScanNextLine (ifstream& sentStream, char delimChar);
 void OutputConfigFileData ();
 
 int main (int argc, char* argv[])
@@ -66,7 +69,104 @@ int main (int argc, char* argv[])
 
     OutputConfigFileData ();
 
+    RunMetaDataFile ();
+
 	return 0;
+
+}
+
+//Returns true if the entire file is parsed correctly
+bool RunMetaDataFile ()
+{
+	ifstream mdfFile;
+	mdfFile.open (metaDataFilePath);
+	string currentLine;
+
+	cout << "Opened" << endl;
+
+	//Check if the file is empty
+	if (mdfFile.eof ())
+	{
+		cout << "Error: Empty Meta Data File" << endl;
+
+		mdfFile.close ();
+		return false;
+
+	}
+
+	currentLine = ScanNextLine (mdfFile);
+
+	//Check for start line
+	if (currentLine.find ("Start Program Meta-Data Code:") == string::npos) //True if not found
+	{
+		//First line does not contain start line
+		cout << "Error: No start program command" << endl;
+
+		mdfFile.close ();
+		return false;
+
+	}
+
+	currentLine = ScanNextLine (mdfFile, ';');
+
+	//Check for start command
+	if (currentLine.find ("S{begin}0") == string::npos) //True if not found
+	{
+		//First line does not contain start command
+		cout << "Error: No start command found" << endl;
+
+		mdfFile.close ();
+		return false;
+
+	}
+
+	bool reachedEndOfFile = false;
+
+	do
+	{
+		if (mdfFile.eof ())
+		{
+			cout << "Error: mdf file ended unexpectedly" << endl;
+
+			mdfFile.close ();
+			return false;
+
+		} else
+		{
+			//With ';' delim to read one command at a time
+			currentLine = ScanNextLine (mdfFile, ';');
+
+			//Check if the end of the file was reached
+			if (currentLine.find ("End Program Meta-Data Code.") != string::npos)
+			{
+				reachedEndOfFile = true;
+
+				//cout << "Found EOF" << endl;
+
+			} else
+			{	
+				//cout << "Parsing Command: " << currentLine << endl;
+ 				//S=OS, A=Application, P=Process, I=Input, O=Output 
+				if (!ParseCommand (currentLine))
+				{
+					cout << "There was an error with the command \"" << currentLine << "\"" << endl;
+
+					mdfFile.close ();
+					return false;
+
+				}
+
+			}
+
+		}
+
+		
+
+
+
+	} while (!reachedEndOfFile);
+
+	return true;
 
 }
 
@@ -303,6 +403,101 @@ bool ScanConfigFile (string cfgFileName)
 
 }
 
+//S=OS, A=Application, P=Process, I=Input, O=Output
+bool ParseCommand (string sentCommand)
+{
+	char commandChar = sentCommand [0];
+
+	for (int i = 0; (i < sentCommand.length() && (commandChar == ' ' || commandChar == '\n' || commandChar == '\t')); i++)
+	{
+		commandChar = sentCommand [i];
+
+	}
+
+	if (commandChar == 'S')
+	{
+		if (sentCommand.find ("begin") == string::npos)
+		{
+			//First line does not contain start command
+			cout << "Error: No \"begin\" command found" << endl;
+
+			return false;
+
+		} else
+		{
+			return true;
+
+		}
+
+	} else if (commandChar == 'A')
+	{
+		if (sentCommand.find ("begin") == string::npos)
+		{
+			//First line does not contain start command
+			cout << "Error: No \"begin\" command found" << endl;
+
+			return false;
+
+		} else
+		{
+			return true;
+
+		}
+
+	} else if (commandChar == 'P')
+	{
+		if (sentCommand.find ("run") == string::npos)
+		{
+			//First line does not contain start command
+			cout << "Error: No \"run\" command found" << endl;
+
+			return false;
+
+		} else
+		{
+			int duration = 0;
+
+			if (sscanf(sentCommand.c_str(), " P{run}%d", &duration) <= 0) //Couldn't find a duration
+			{
+				cout << "Error: no duration found" << endl;
+
+			}
+
+			cout << sentCommand << " - " << (duration * processorCycleTime) << endl;
+
+			return true;
+
+		}
+
+
+	} else if (commandChar == 'I')
+	{
+		cout << "Input!" << endl;
+
+		return true;
+
+	} else if (commandChar == 'O')
+	{
+		cout << "Output!" << endl;
+
+		return true;
+
+	} else if (commandChar == 'M')
+	{
+		cout << "Memory!" << endl;
+
+		return true;
+
+	} else
+	{
+		cout << "Error: Unknown command char \'" << commandChar << "\'" << endl;
+
+		return false;
+
+	}
+
+}
+
 string ScanNextLine (ifstream& sentStream)
 {
 	char line[50];
@@ -310,6 +505,25 @@ string ScanNextLine (ifstream& sentStream)
 	sentStream.getline (line, 50);
 
 	string lineStr = line;
+
+	return lineStr;
+
+}
+
+//Overload with delim char added
+string ScanNextLine (ifstream& sentStream, char delimChar)
+{
+	char line[50];
+
+	sentStream.getline (line, 50, delimChar);
+
+	string lineStr = line;
+
+	while (lineStr[0] < 65) //Trim whitespace, tabs, newlines, etc. 65 == ASCII 'A'
+	{
+		lineStr.erase (lineStr.begin ());
+
+	}
 
 	return lineStr;
 
