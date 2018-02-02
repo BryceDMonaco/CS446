@@ -36,6 +36,8 @@ int projectorCycleTime;		//msec
 
 bool shouldLogToFile = false;
 bool shouldLogToMonitor = false;
+bool currentlyRunningSystem = false;
+bool currentlyRunningApplication = false;
 
 bool RunMetaDataFile ();
 bool ScanConfigFile (string cfgFileName);
@@ -82,8 +84,8 @@ bool RunMetaDataFile ()
 	mdfFile.open (metaDataFilePath);
 	string currentLine;
 
-	cout << "Opened" << endl;
-
+	cout << endl << "Meta-Data Metrics" << endl;
+	
 	//Check if the file is empty
 	if (mdfFile.eof ())
 	{
@@ -416,31 +418,77 @@ bool ParseCommand (string sentCommand)
 
 	if (commandChar == 'S')
 	{
-		if (sentCommand.find ("begin") == string::npos)
+		if (sentCommand.find ("begin") != string::npos) //being command found
 		{
-			//First line does not contain start command
-			cout << "Error: No \"begin\" command found" << endl;
+			if (currentlyRunningSystem) //The system is already running
+			{
+				cout << "Error: A begin command his already been processed" << endl;
+
+			} else //The system has not been initialized before and a begin command was sent
+			{
+				currentlyRunningSystem = true;
+
+				return true;
+
+			}
+
+		} else if (sentCommand.find ("finish") != string::npos) //finish command found
+		{
+			if (!currentlyRunningSystem) //The system is already finished
+			{
+				cout << "Error: A finish command has already been processed" << endl;
+
+			} else //The system is running and a finish command was sent
+			{
+				currentlyRunningSystem = false;
+
+				return true;
+
+			}
+
+		} else //No valid keyword found
+		{
+			cout << "Error: No valid keyword found" << endl;
 
 			return false;
-
-		} else
-		{
-			return true;
 
 		}
 
 	} else if (commandChar == 'A')
 	{
-		if (sentCommand.find ("begin") == string::npos)
+		if (sentCommand.find ("begin") != string::npos) //being command found
 		{
-			//First line does not contain start command
-			cout << "Error: No \"begin\" command found" << endl;
+			if (currentlyRunningApplication) //An application is already running
+			{
+				cout << "Error: A begin command his already been processed" << endl;
+
+			} else //The application has not been initialized before and a begin command was sent
+			{
+				currentlyRunningApplication = true;
+
+				return true;
+
+			}
+
+		} else if (sentCommand.find ("finish") != string::npos) //finish command found
+		{
+			if (!currentlyRunningApplication) //The application is already finished
+			{
+				cout << "Error: A finish command has already been processed" << endl;
+
+			} else //The application is running and a finish command was sent
+			{
+				currentlyRunningApplication = false;
+
+				return true;
+
+			}
+
+		} else //No valid keyword found
+		{
+			cout << "Error: No valid keyword found" << endl;
 
 			return false;
-
-		} else
-		{
-			return true;
 
 		}
 
@@ -449,7 +497,7 @@ bool ParseCommand (string sentCommand)
 		if (sentCommand.find ("run") == string::npos)
 		{
 			//First line does not contain start command
-			cout << "Error: No \"run\" command found" << endl;
+			cout << "Error: No \"run\" keyword found" << endl;
 
 			return false;
 
@@ -461,6 +509,8 @@ bool ParseCommand (string sentCommand)
 			{
 				cout << "Error: no duration found" << endl;
 
+				return false;
+
 			}
 
 			cout << sentCommand << " - " << (duration * processorCycleTime) << endl;
@@ -471,20 +521,155 @@ bool ParseCommand (string sentCommand)
 
 
 	} else if (commandChar == 'I')
-	{
-		cout << "Input!" << endl;
+	{	
+		//Read in the keyword
+		int duration = 0;
+		string keyword;
+
+		char tempChar = '|';
+
+		if (sentCommand.find ("{") == string::npos)
+		{
+			//First line does not contain start command
+			cout << "Error: No keyword bracket found" << endl;
+
+			return false;
+
+		} else
+		{
+			int index = sentCommand.find ("{") + 1;
+
+			tempChar = sentCommand [index];
+
+			while (tempChar != '}')
+			{
+				keyword.push_back (tempChar);
+
+				index++;
+				tempChar = sentCommand [index];
+
+			}
+
+		}
+
+		//Done this way so sscanf can deal with keywords which have a space such as "hard drive"
+		string commandToParse = " I{";
+		commandToParse += keyword;
+		commandToParse += "}%d";
+
+		if (sscanf(sentCommand.c_str(), commandToParse.c_str (), &duration) <= 0) //Couldn't find a duration AND a keyword
+		{
+			cout << "Error: no duration found" << endl;
+			cout << "Extra info: Keyword: " << keyword << endl;
+
+			return false;
+
+		}
+
+		if (keyword.find ("hard drive") != string::npos)
+		{
+			cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
+
+		} else if (keyword.find ("keyboard") != string::npos)
+		{
+			cout << sentCommand << " - " << (duration * keyboardCycleTime) << endl;
+
+		} else if (keyword.find ("scanner") != string::npos)
+		{
+			cout << sentCommand << " - " << (duration * scannerCycleTime) << endl;
+
+		} else
+		{
+			cout << "Error: Unrecognized keyword \"" << keyword << "\"" << endl;
+
+			return false;
+
+		}
 
 		return true;
 
 	} else if (commandChar == 'O')
 	{
-		cout << "Output!" << endl;
+		//Read in the keyword
+		int duration = 0;
+		string keyword;
+
+		char tempChar = '|';
+
+		if (sentCommand.find ("{") == string::npos)
+		{
+			//First line does not contain start command
+			cout << "Error: No keyword bracket found" << endl;
+
+			return false;
+
+		} else
+		{
+			int index = sentCommand.find ("{") + 1;
+
+			tempChar = sentCommand [index];
+
+			while (tempChar != '}')
+			{
+				keyword.push_back (tempChar);
+
+				index++;
+				tempChar = sentCommand [index];
+
+			}
+
+		}
+
+		//Done this way so sscanf can deal with keywords which have a space such as "hard drive"
+		string commandToParse = " O{";
+		commandToParse += keyword;
+		commandToParse += "}%d";
+
+		if (sscanf(sentCommand.c_str(), commandToParse.c_str (), &duration) <= 0) //Couldn't find a duration AND a keyword
+		{
+			cout << "Error: no duration found" << endl;
+			cout << "Extra info: Keyword: " << keyword << endl;
+
+			return false;
+
+		}
+
+		if (keyword.find ("hard drive") != string::npos)
+		{
+			cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
+
+		} else if (keyword.find ("monitor") != string::npos)
+		{
+			cout << sentCommand << " - " << (duration * monitorDispTime) << endl;
+
+		} else if (keyword.find ("projector") != string::npos)
+		{
+			cout << sentCommand << " - " << (duration * projectorCycleTime) << endl;
+
+		} else
+		{
+			cout << "Error: Unrecognized keyword \"" << keyword << "\"" << endl;
+
+			return false;
+
+		}
 
 		return true;
 
 	} else if (commandChar == 'M')
 	{
-		cout << "Memory!" << endl;
+		int duration = -1;
+
+		//Check for the allocate keyword, if it can't be found check for block keyword
+		if (sscanf(sentCommand.c_str(), " M{allocate}%d", &duration) <= 0 && sscanf(sentCommand.c_str(), " M{block}%d", &duration) <= 0) //Couldn't find a duration
+		{
+			cout << "Error: no duration found or the keyword may be invalid" << endl;
+
+			return false;
+
+		}
+
+		cout << sentCommand << " - " << (duration * memoryCycleTime) << endl;
 
 		return true;
 
