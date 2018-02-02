@@ -8,14 +8,16 @@
 	Note: 	In the case of a fatal error the simulation will print directly to the console since
 			the error might be output-related
 
+	TODO:	Arbitrary number of config files, store config files in an ADT, store mdf commands in an ADT
+
 */
 
 #include <iostream>
 #include <ostream>
 #include <fstream>
 #include <string>
-#include <sstream>
-#include <vector>
+#include <sstream> 	//Not actually used in latest version
+#include <vector>	//Not actually used in latest version
 
 #include <stdio.h>
 
