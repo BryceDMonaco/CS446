@@ -3,7 +3,7 @@
 	CS 446
 	Project 1
 
-	Compile with: g++ Sim01.cpp -o Sim01 -std=c++11
+	Compile with: g++ Sim01.cpp -o Sim01 -std=c++11 or makefile
 
 	Note: 	In the case of a fatal error the simulation will print directly to the console since
 			the error might be output-related
