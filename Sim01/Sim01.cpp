@@ -5,9 +5,13 @@
 
 	Compile with: g++ Sim01.cpp -o Sim01 -std=c++11
 
+	Note: 	In the case of a fatal error the simulation will print directly to the console since
+			the error might be output-related
+
 */
 
 #include <iostream>
+#include <ostream>
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -45,6 +49,7 @@ bool ParseCommand (string sentCommand);
 string ScanNextLine (ifstream& sentStream);
 string ScanNextLine (ifstream& sentStream, char delimChar);
 void OutputConfigFileData ();
+bool OutputToLog (string sentOutput, bool createNewLine);
 
 int main (int argc, char* argv[])
 {
@@ -61,7 +66,9 @@ int main (int argc, char* argv[])
 
     	if (!ScanConfigFile (argv [1])) //Function returns false if there was an error
     	{
-    		cout << "There was an error with the config file." << endl;
+    		cout << "FATAL ERROR: There was an error with the config file." << endl;
+
+    		return 0;
 
     	}
 
@@ -69,9 +76,29 @@ int main (int argc, char* argv[])
 
     //From this point on, the config file has been read successfully
 
+    if (shouldLogToFile)
+    {
+    	logFile.open (logFilePath);
+
+    }
+
+    if (!OutputToLog ("Configuration File Data", true)) //OutputToLog returns false if output is incorrectly configured
+    {
+    	cout << "FATAL ERROR: There was an output error. Closing the simulation." << endl;
+
+    	return 0;
+
+    }
+
     OutputConfigFileData ();
 
     RunMetaDataFile ();
+
+    if (logFile.is_open ())
+    {
+    	logFile.close ();
+
+    }
 
 	return 0;
 
@@ -84,12 +111,14 @@ bool RunMetaDataFile ()
 	mdfFile.open (metaDataFilePath);
 	string currentLine;
 
-	cout << endl << "Meta-Data Metrics" << endl;
-	
+	OutputToLog ("\nMeta-Data Metrics", true);
+	//cout << endl << "Meta-Data Metrics" << endl;
+
 	//Check if the file is empty
 	if (mdfFile.eof ())
 	{
-		cout << "Error: Empty Meta Data File" << endl;
+		OutputToLog ("Error: Empty Meta Data File", true);
+		//cout << "Error: Empty Meta Data File" << endl;
 
 		mdfFile.close ();
 		return false;
@@ -102,7 +131,8 @@ bool RunMetaDataFile ()
 	if (currentLine.find ("Start Program Meta-Data Code:") == string::npos) //True if not found
 	{
 		//First line does not contain start line
-		cout << "Error: No start program command" << endl;
+		OutputToLog ("Error: No start program command", true);
+		//cout << "Error: No start program command" << endl;
 
 		mdfFile.close ();
 		return false;
@@ -115,7 +145,8 @@ bool RunMetaDataFile ()
 	if (currentLine.find ("S{begin}0") == string::npos) //True if not found
 	{
 		//First line does not contain start command
-		cout << "Error: No start command found" << endl;
+		OutputToLog ("Error: No start command found", true);
+		//cout << "Error: No start command found" << endl;
 
 		mdfFile.close ();
 		return false;
@@ -128,7 +159,8 @@ bool RunMetaDataFile ()
 	{
 		if (mdfFile.eof ())
 		{
-			cout << "Error: mdf file ended unexpectedly" << endl;
+			OutputToLog ("Error: mdf file ended unexpectedly", true);
+			//cout << "Error: mdf file ended unexpectedly" << endl;
 
 			mdfFile.close ();
 			return false;
@@ -151,7 +183,8 @@ bool RunMetaDataFile ()
  				//S=OS, A=Application, P=Process, I=Input, O=Output 
 				if (!ParseCommand (currentLine))
 				{
-					cout << "There was an error with the command \"" << currentLine << "\"" << endl;
+					OutputToLog (string ("There was an error with the command \"" + currentLine + "\""), true);
+					//cout << "There was an error with the command \"" << currentLine << "\"" << endl;
 
 					mdfFile.close ();
 					return false;
@@ -255,7 +288,7 @@ bool ScanConfigFile (string cfgFileName)
 
 				//break;
 
-			} else if (currentLine.find ("Monitor") != string::npos)
+			} else if (currentLine.find ("Monitor d") != string::npos) //Added "d" because it was conflicting with Log to Monitor
 			{
 
     			sscanf(currentLine.c_str(), "Monitor display time {msec}:%d", &monitorDispTimeTEMP);
@@ -312,14 +345,18 @@ bool ScanConfigFile (string cfgFileName)
 			} else if (currentLine.find ("Projector") != string::npos)
 			{
 
+				//cout << "FOUND PROJECTOR LINE: " << currentLine << endl;
+
     			sscanf(currentLine.c_str(), "Projector cycle time {msec}:%d", &projectorCycleTimeTEMP);
 
 				//cout << "Found Projector Time " << projectorCycleTimeTEMP << endl;
 
 				//break;
 
-			} else if (currentLine.find ("Log:") != string::npos)
+			} else if (currentLine.find ("Log to") != string::npos)
 			{
+
+				//cout << "FOUND LOG LINE:" << currentLine << endl;
 
     			if (currentLine.find ("Both") != string::npos)
     			{
@@ -339,6 +376,11 @@ bool ScanConfigFile (string cfgFileName)
     				shouldLogToFileTEMP = true;
 
     				//cout << "Logging to file only" << endl;
+
+    			} else
+    			{
+    				OutputToLog (string ("Error cannot interpret: ") + currentLine, true);
+    				//cout << "Error: Can not interpret: " << currentLine << endl;
 
     			}
 
@@ -373,7 +415,8 @@ bool ScanConfigFile (string cfgFileName)
 	if (currentLine.find ("End Simulator Configuration File") == string::npos)
 	{
 		//First line does not contain start command
-		cout << "Error: No end command" << endl;
+		OutputToLog ("Error: No end config file command", true);
+		//cout << "Error: No end command" << endl;
 
 		cfgFile.close ();
 		return false;
@@ -422,7 +465,8 @@ bool ParseCommand (string sentCommand)
 		{
 			if (currentlyRunningSystem) //The system is already running
 			{
-				cout << "Error: A begin command his already been processed" << endl;
+				OutputToLog ("Error: A begin command has already been processed", true);
+				//cout << "Error: A begin command has already been processed" << endl;
 
 			} else //The system has not been initialized before and a begin command was sent
 			{
@@ -436,7 +480,8 @@ bool ParseCommand (string sentCommand)
 		{
 			if (!currentlyRunningSystem) //The system is already finished
 			{
-				cout << "Error: A finish command has already been processed" << endl;
+				OutputToLog ("Error: A finish command has already been processed", true);
+				//cout << "Error: A finish command has already been processed" << endl;
 
 			} else //The system is running and a finish command was sent
 			{
@@ -448,7 +493,8 @@ bool ParseCommand (string sentCommand)
 
 		} else //No valid keyword found
 		{
-			cout << "Error: No valid keyword found" << endl;
+			OutputToLog ("Error: No valid keyword found", true);
+			//cout << "Error: No valid keyword found" << endl;
 
 			return false;
 
@@ -460,7 +506,8 @@ bool ParseCommand (string sentCommand)
 		{
 			if (currentlyRunningApplication) //An application is already running
 			{
-				cout << "Error: A begin command his already been processed" << endl;
+				OutputToLog ("Error: A begin command has already been processed", true);
+				//cout << "Error: A begin command has already been processed" << endl;
 
 			} else //The application has not been initialized before and a begin command was sent
 			{
@@ -474,7 +521,8 @@ bool ParseCommand (string sentCommand)
 		{
 			if (!currentlyRunningApplication) //The application is already finished
 			{
-				cout << "Error: A finish command has already been processed" << endl;
+				OutputToLog ("Error: A finish command has already been processed", true);
+				//cout << "Error: A finish command has already been processed" << endl;
 
 			} else //The application is running and a finish command was sent
 			{
@@ -486,7 +534,8 @@ bool ParseCommand (string sentCommand)
 
 		} else //No valid keyword found
 		{
-			cout << "Error: No valid keyword found" << endl;
+			OutputToLog ("Error: No valid keyword found", true);
+			//cout << "Error: No valid keyword found" << endl;
 
 			return false;
 
@@ -497,7 +546,8 @@ bool ParseCommand (string sentCommand)
 		if (sentCommand.find ("run") == string::npos)
 		{
 			//First line does not contain start command
-			cout << "Error: No \"run\" keyword found" << endl;
+			OutputToLog ("Error: No \"run\" keyword found", true);
+			//cout << "Error: No \"run\" keyword found" << endl;
 
 			return false;
 
@@ -507,13 +557,15 @@ bool ParseCommand (string sentCommand)
 
 			if (sscanf(sentCommand.c_str(), " P{run}%d", &duration) <= 0) //Couldn't find a duration
 			{
-				cout << "Error: no duration found" << endl;
+				OutputToLog ("Error: No duration found", true);
+				//cout << "Error: no duration found" << endl;
 
 				return false;
 
 			}
 
-			cout << sentCommand << " - " << (duration * processorCycleTime) << endl;
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * processorCycleTime), true);
+			//cout << sentCommand << " - " << (duration * processorCycleTime) << endl;
 
 			return true;
 
@@ -531,7 +583,8 @@ bool ParseCommand (string sentCommand)
 		if (sentCommand.find ("{") == string::npos)
 		{
 			//First line does not contain start command
-			cout << "Error: No keyword bracket found" << endl;
+			OutputToLog ("Error: No keyword bracket found", true);
+			//cout << "Error: No keyword bracket found" << endl;
 
 			return false;
 
@@ -559,8 +612,9 @@ bool ParseCommand (string sentCommand)
 
 		if (sscanf(sentCommand.c_str(), commandToParse.c_str (), &duration) <= 0) //Couldn't find a duration AND a keyword
 		{
-			cout << "Error: no duration found" << endl;
-			cout << "Extra info: Keyword: " << keyword << endl;
+			OutputToLog ("Error: No duration found", true);
+			//cout << "Error: no duration found" << endl;
+			//cout << "Extra info: Keyword: " << keyword << endl; //This isn't given it's own OutputToLog because it was just for initial debugging
 
 			return false;
 
@@ -568,19 +622,23 @@ bool ParseCommand (string sentCommand)
 
 		if (keyword.find ("hard drive") != string::npos)
 		{
-			cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * hardDriveCycleTime), true);
+			//cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
 
 		} else if (keyword.find ("keyboard") != string::npos)
 		{
-			cout << sentCommand << " - " << (duration * keyboardCycleTime) << endl;
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * keyboardCycleTime), true);
+			//cout << sentCommand << " - " << (duration * keyboardCycleTime) << endl;
 
 		} else if (keyword.find ("scanner") != string::npos)
 		{
-			cout << sentCommand << " - " << (duration * scannerCycleTime) << endl;
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * scannerCycleTime), true);
+			//cout << sentCommand << " - " << (duration * scannerCycleTime) << endl;
 
 		} else
 		{
-			cout << "Error: Unrecognized keyword \"" << keyword << "\"" << endl;
+			OutputToLog (string ("Error: Unrecognized keyword \"" + keyword + "\""), true);
+			//cout << "Error: Unrecognized keyword \"" << keyword << "\"" << endl;
 
 			return false;
 
@@ -599,7 +657,8 @@ bool ParseCommand (string sentCommand)
 		if (sentCommand.find ("{") == string::npos)
 		{
 			//First line does not contain start command
-			cout << "Error: No keyword bracket found" << endl;
+			OutputToLog ("Error: No keyword bracket found", true);
+			//cout << "Error: No keyword bracket found" << endl;
 
 			return false;
 
@@ -621,14 +680,15 @@ bool ParseCommand (string sentCommand)
 		}
 
 		//Done this way so sscanf can deal with keywords which have a space such as "hard drive"
-		string commandToParse = " O{";
-		commandToParse += keyword;
-		commandToParse += "}%d";
+		string commandToParse = string (" O{") + keyword + "}%d";
+		//commandToParse += keyword;
+		//commandToParse += "}%d";
 
 		if (sscanf(sentCommand.c_str(), commandToParse.c_str (), &duration) <= 0) //Couldn't find a duration AND a keyword
 		{
-			cout << "Error: no duration found" << endl;
-			cout << "Extra info: Keyword: " << keyword << endl;
+			OutputToLog ("Error: No duration found", true);
+			//cout << "Error: no duration found" << endl;
+			//cout << "Extra info: Keyword: " << keyword << endl; //Just extra debug info
 
 			return false;
 
@@ -636,19 +696,23 @@ bool ParseCommand (string sentCommand)
 
 		if (keyword.find ("hard drive") != string::npos)
 		{
-			cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * hardDriveCycleTime), true);
+			//cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
 
 		} else if (keyword.find ("monitor") != string::npos)
 		{
-			cout << sentCommand << " - " << (duration * monitorDispTime) << endl;
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * monitorDispTime), true);
+			//cout << sentCommand << " - " << (duration * monitorDispTime) << endl;
 
 		} else if (keyword.find ("projector") != string::npos)
 		{
-			cout << sentCommand << " - " << (duration * projectorCycleTime) << endl;
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * projectorCycleTime), true);
+			//cout << sentCommand << " - " << (duration * projectorCycleTime) << endl;
 
 		} else
 		{
-			cout << "Error: Unrecognized keyword \"" << keyword << "\"" << endl;
+			OutputToLog (string ("Error: Unrecognized keyword \"") + keyword + "\"", true);
+			//cout << "Error: Unrecognized keyword \"" << keyword << "\"" << endl;
 
 			return false;
 
@@ -663,19 +727,22 @@ bool ParseCommand (string sentCommand)
 		//Check for the allocate keyword, if it can't be found check for block keyword
 		if (sscanf(sentCommand.c_str(), " M{allocate}%d", &duration) <= 0 && sscanf(sentCommand.c_str(), " M{block}%d", &duration) <= 0) //Couldn't find a duration
 		{
-			cout << "Error: no duration found or the keyword may be invalid" << endl;
+			OutputToLog ("Error: No duration found or the keyword may be invalid", true);
+			//cout << "Error: no duration found or the keyword may be invalid" << endl;
 
 			return false;
 
 		}
 
-		cout << sentCommand << " - " << (duration * memoryCycleTime) << endl;
+		OutputToLog (string (sentCommand) + " - " + to_string (duration * memoryCycleTime), true);
+		//cout << sentCommand << " - " << (duration * memoryCycleTime) << endl;
 
 		return true;
 
 	} else
 	{
-		cout << "Error: Unknown command char \'" << commandChar << "\'" << endl;
+		OutputToLog (string ("Error: Unknown command char \'") + commandChar + "\"", true);
+		//cout << "Error: Unknown command char \'" << commandChar << "\'" << endl;
 
 		return false;
 
@@ -716,29 +783,100 @@ string ScanNextLine (ifstream& sentStream, char delimChar)
 
 void OutputConfigFileData ()
 {
-	cout << "Configuration File Data" << endl;
-	cout << "Monitor = " << monitorDispTime << "ms/cycle" << endl;
-	cout << "Processor = " << processorCycleTime << "ms/cycle" << endl;
-	cout << "Scanner = " << scannerCycleTime << "ms/cycle" << endl;
-	cout << "Hard Drive = " << hardDriveCycleTime << "ms/cycle" << endl;
-	cout << "Keyboard = " << keyboardCycleTime << "ms/cycle" << endl;
-	cout << "Memory = " << memoryCycleTime << "ms/cycle" << endl;
-	cout << "Projector = " << projectorCycleTime << "ms/cycle" << endl;
-	cout << "Logged to: ";
+	//Legacy Output Format
+	//cout << "Configuration File Data" << endl;	
+	//cout << "Monitor = " << monitorDispTime << "ms/cycle" << endl;	
+	//cout << "Processor = " << processorCycleTime << "ms/cycle" << endl;
+	//cout << "Scanner = " << scannerCycleTime << "ms/cycle" << endl;
+	//cout << "Hard Drive = " << hardDriveCycleTime << "ms/cycle" << endl;
+	//cout << "Keyboard = " << keyboardCycleTime << "ms/cycle" << endl;
+	//cout << "Memory = " << memoryCycleTime << "ms/cycle" << endl;
+	//cout << "Projector = " << projectorCycleTime << "ms/cycle" << endl;
+	//cout << "Logged to: ";
+
+	//Note that to use the string operator '+' the first string literal needs to be inside a string constructor
+	OutputToLog (string ("Monitor = ") + to_string (monitorDispTime) + "ms/cycle", true);
+	OutputToLog (string ("Processor = ") + to_string (processorCycleTime) + "ms/cycle", true);
+	OutputToLog (string ("Scanner = ") + to_string (scannerCycleTime) + "ms/cycle", true);
+	OutputToLog (string ("Hard Drive = ") + to_string (hardDriveCycleTime) + "ms/cycle", true);
+	OutputToLog (string ("Keyboard = ") + to_string (keyboardCycleTime) + "ms/cycle", true);
+	OutputToLog (string ("Memory = ") + to_string (memoryCycleTime) + "ms/cycle", true);
+	OutputToLog (string ("Projector = ") + to_string (processorCycleTime) + "ms/cycle", true);
+	OutputToLog (string ("Logged to: "), false);
+
 
 	if (shouldLogToMonitor && shouldLogToFile)
 	{
-		cout << "Monitor and " << logFilePath << endl;
+		OutputToLog (string ("Monitor and ") + logFilePath, true);
+		//cout << "Monitor and " << logFilePath << endl;
 
 	} else if (shouldLogToMonitor)
 	{
-		cout << "Monitor" << endl;
+		OutputToLog ("Monitor", true);
+		//cout << "Monitor" << endl;
 
 	} else if (shouldLogToFile)
 	{
-		cout << logFilePath << endl;
+		OutputToLog (logFilePath, true);
+		//cout << logFilePath << endl;
 
 	}
 
 	return;
+}
+
+bool OutputToLog (string sentOutput, bool createNewLine)
+{
+	if (shouldLogToFile && !logFile.is_open ())
+	{
+		cout << "FATAL ERROR: Cannot output to file, there seems to have been an error in opening the file" << endl;
+
+		return false;
+
+	} else if (shouldLogToFile && shouldLogToMonitor) //Log to both
+	{
+		logFile << sentOutput;
+		cout << sentOutput;
+
+		if (createNewLine)
+		{
+			logFile << endl;
+			cout << endl;
+
+		}
+
+		return true;
+
+	} else if (shouldLogToFile)
+	{
+		logFile << sentOutput;
+
+		if (createNewLine)
+		{
+			logFile << endl;
+
+		}
+
+		return true;
+
+	} else if (shouldLogToMonitor)
+	{
+		cout << sentOutput;
+
+		if (createNewLine)
+		{
+			cout << endl;
+
+		}
+
+		return true;
+
+	} else
+	{
+		cout << "FATAL ERROR: Output is incorrectly configured and cannot be made" << endl;
+
+		return false;
+
+	}
+
 }
