@@ -19,6 +19,8 @@
 #include <sstream> 	//Not actually used in latest version
 #include <vector>	//Not actually used in latest version
 
+#include "ConfigFile.cpp"
+
 #include <stdio.h>
 
 using namespace std;
