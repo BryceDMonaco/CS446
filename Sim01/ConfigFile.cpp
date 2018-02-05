@@ -21,6 +21,8 @@ class ConfigFile
 		void SetMemoryTime (int sentValue);
 		void SetProjectorTime (int sentValue);
 
+		void SetLogPreferences (bool toFile, bool toMonitor);
+
 		//Access Functions
 		float GetVersionNumber () const;
 		string GetMDFPath () const;
@@ -153,6 +155,15 @@ void ConfigFile::SetMemoryTime (int sentValue)
 void ConfigFile::SetProjectorTime (int sentValue)
 {
 	projectorCycleTime = sentValue;
+
+	return;
+
+}
+
+void ConfigFile::SetLogPreferences (bool toFile, bool toMonitor)
+{
+	shouldLogToFile = toFile;
+	shouldLogToMonitor = toMonitor;
 
 	return;
 

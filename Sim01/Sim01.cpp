@@ -26,6 +26,8 @@
 
 using namespace std;
 
+//Below commented out because the ConfigFile ADT handles it now
+/*
 //Global configuration variables
 float versionNumber;		//Float to allow 1.XX
 
@@ -33,7 +35,7 @@ string metaDataFilePath;	//Path to the current mdf, note only ScanConfigFile () 
 string logFilePath;			//Path to the global log file (if one is used)
 
 //ifstream metaDataFile;	//Made local variable in meta data run function
-ofstream logFile;
+
 
 
 int monitorDispTime;		//msec
@@ -46,6 +48,10 @@ int projectorCycleTime;		//msec
 
 bool shouldLogToFile = false;
 bool shouldLogToMonitor = false;
+*/
+
+ofstream logFile;
+string currentLGFPath;
 
 ConfigFile currentConfFile;
 vector<ConfigFile> allConfigFiles;
@@ -54,11 +60,11 @@ bool currentlyRunningSystem = false;
 bool currentlyRunningApplication = false;
 
 bool RunMetaDataFile ();
-bool ScanConfigFile (string cfgFileName);
+bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile);
 bool ParseCommand (string sentCommand);
 string ScanNextLine (ifstream& sentStream);
 string ScanNextLine (ifstream& sentStream, char delimChar);
-void OutputConfigFileData ();
+void OutputConfigFileData (bool toFile, bool toMonitor);
 bool OutputToLog (string sentOutput, bool createNewLine);
 
 int main (int argc, char* argv[])
@@ -74,7 +80,7 @@ int main (int argc, char* argv[])
     {
     	//cout << "Opening config file \"" << argv [1] << "\"..." << endl;
 
-    	if (!ScanConfigFile (argv [1])) //Function returns false if there was an error
+    	if (!ScanConfigFile (argv [1], currentConfFile)) //Function returns false if there was an error
     	{
     		cout << "FATAL ERROR: There was an error with the config file." << endl;
 
@@ -86,9 +92,11 @@ int main (int argc, char* argv[])
 
     //From this point on, the config file has been read successfully
 
-    if (shouldLogToFile)
+    if (currentConfFile.ShouldLogToFile ())
     {
-    	logFile.open (logFilePath);
+    	currentLGFPath = currentConfFile.GetLGFPath ();
+
+    	logFile.open (currentLGFPath);
 
     }
 
@@ -100,7 +108,7 @@ int main (int argc, char* argv[])
 
     }
 
-    OutputConfigFileData ();
+    OutputConfigFileData (currentConfFile.ShouldLogToFile (), currentConfFile.ShouldLogToMonitor ());
 
     RunMetaDataFile ();
 
@@ -118,7 +126,7 @@ int main (int argc, char* argv[])
 bool RunMetaDataFile ()
 {
 	ifstream mdfFile;
-	mdfFile.open (metaDataFilePath);
+	mdfFile.open (currentConfFile.GetMDFPath ());
 	string currentLine;
 
 	OutputToLog ("\nMeta-Data Metrics", true);
@@ -216,7 +224,7 @@ bool RunMetaDataFile ()
 }
 
 //Returns true if successful, false otherwise
-bool ScanConfigFile (string cfgFileName)
+bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 {
 	//Open the config fire
 	ifstream cfgFile;
@@ -433,22 +441,21 @@ bool ScanConfigFile (string cfgFileName)
 
 	} else
 	{
-		//Config file was read successfully, now store all read values into their global vars
-		versionNumber = versionNumberTEMP;
+		//Config file was read successfully, now store all read values into the sent file
+		sentFile.SetVersionNumber (versionNumberTEMP);
 
-		metaDataFilePath = metaDataFilePathTEMP;
-		logFilePath = logFilePathTEMP;	
+		sentFile.SetMDFPath (metaDataFilePathTEMP);
+		sentFile.SetLGFPath (logFilePathTEMP);
 
-		monitorDispTime = monitorDispTimeTEMP;
-		processorCycleTime = processorCycleTimeTEMP;
-		scannerCycleTime = scannerCycleTimeTEMP;
-		hardDriveCycleTime = hardDriveCycleTimeTEMP;
-		keyboardCycleTime = keyboardCycleTimeTEMP;
-		memoryCycleTime = memoryCycleTimeTEMP;
-		projectorCycleTime = projectorCycleTimeTEMP;
+		sentFile.SetMonitorTime (monitorDispTimeTEMP);
+		sentFile.SetProcessorTime (processorCycleTimeTEMP);
+		sentFile.SetScannerTime (scannerCycleTimeTEMP);
+		sentFile.SetHardDriveTime (hardDriveCycleTimeTEMP);
+		sentFile.SetKeyboardTime (keyboardCycleTimeTEMP);
+		sentFile.SetMemoryTime (memoryCycleTimeTEMP);
+		sentFile.SetProjectorTime (projectorCycleTimeTEMP);
 
-		shouldLogToFile = shouldLogToFileTEMP;
-		shouldLogToMonitor = shouldLogToMonitorTEMP;
+		sentFile.SetLogPreferences (shouldLogToFileTEMP, shouldLogToMonitorTEMP);
 
 	}
 
@@ -574,7 +581,7 @@ bool ParseCommand (string sentCommand)
 
 			}
 
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * processorCycleTime), true);
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetProcessorTime ()), true);
 			//cout << sentCommand << " - " << (duration * processorCycleTime) << endl;
 
 			return true;
@@ -632,17 +639,17 @@ bool ParseCommand (string sentCommand)
 
 		if (keyword.find ("hard drive") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * hardDriveCycleTime), true);
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetHardDriveTime ()), true);
 			//cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
 
 		} else if (keyword.find ("keyboard") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * keyboardCycleTime), true);
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetKeyboardTime ()), true);
 			//cout << sentCommand << " - " << (duration * keyboardCycleTime) << endl;
 
 		} else if (keyword.find ("scanner") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * scannerCycleTime), true);
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetScannerTime ()), true);
 			//cout << sentCommand << " - " << (duration * scannerCycleTime) << endl;
 
 		} else
@@ -706,17 +713,17 @@ bool ParseCommand (string sentCommand)
 
 		if (keyword.find ("hard drive") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * hardDriveCycleTime), true);
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetHardDriveTime ()), true);
 			//cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
 
 		} else if (keyword.find ("monitor") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * monitorDispTime), true);
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetMonitorTime ()), true);
 			//cout << sentCommand << " - " << (duration * monitorDispTime) << endl;
 
 		} else if (keyword.find ("projector") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * projectorCycleTime), true);
+			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetProjectorTime ()), true);
 			//cout << sentCommand << " - " << (duration * projectorCycleTime) << endl;
 
 		} else
@@ -744,7 +751,7 @@ bool ParseCommand (string sentCommand)
 
 		}
 
-		OutputToLog (string (sentCommand) + " - " + to_string (duration * memoryCycleTime), true);
+		OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetMemoryTime ()), true);
 		//cout << sentCommand << " - " << (duration * memoryCycleTime) << endl;
 
 		return true;
@@ -791,7 +798,7 @@ string ScanNextLine (ifstream& sentStream, char delimChar)
 
 }
 
-void OutputConfigFileData ()
+void OutputConfigFileData (bool toFile, bool toMonitor)
 {
 	//Legacy Output Format
 	//cout << "Configuration File Data" << endl;	
@@ -805,29 +812,29 @@ void OutputConfigFileData ()
 	//cout << "Logged to: ";
 
 	//Note that to use the string operator '+' the first string literal needs to be inside a string constructor
-	OutputToLog (string ("Monitor = ") + to_string (monitorDispTime) + "ms/cycle", true);
-	OutputToLog (string ("Processor = ") + to_string (processorCycleTime) + "ms/cycle", true);
-	OutputToLog (string ("Scanner = ") + to_string (scannerCycleTime) + "ms/cycle", true);
-	OutputToLog (string ("Hard Drive = ") + to_string (hardDriveCycleTime) + "ms/cycle", true);
-	OutputToLog (string ("Keyboard = ") + to_string (keyboardCycleTime) + "ms/cycle", true);
-	OutputToLog (string ("Memory = ") + to_string (memoryCycleTime) + "ms/cycle", true);
-	OutputToLog (string ("Projector = ") + to_string (processorCycleTime) + "ms/cycle", true);
+	OutputToLog (string ("Monitor = ") + to_string (currentConfFile.GetMonitorTime ()) + "ms/cycle", true);
+	OutputToLog (string ("Processor = ") + to_string (currentConfFile.GetProcessorTime ()) + "ms/cycle", true);
+	OutputToLog (string ("Scanner = ") + to_string (currentConfFile.GetScannerTime ()) + "ms/cycle", true);
+	OutputToLog (string ("Hard Drive = ") + to_string (currentConfFile.GetHardDriveTime ()) + "ms/cycle", true);
+	OutputToLog (string ("Keyboard = ") + to_string (currentConfFile.GetKeyboardTime ()) + "ms/cycle", true);
+	OutputToLog (string ("Memory = ") + to_string (currentConfFile.GetMemoryTime ()) + "ms/cycle", true);
+	OutputToLog (string ("Projector = ") + to_string (currentConfFile.GetProjectorTime ()) + "ms/cycle", true);
 	OutputToLog (string ("Logged to: "), false);
 
 
-	if (shouldLogToMonitor && shouldLogToFile)
+	if (toFile && toMonitor)
 	{
-		OutputToLog (string ("Monitor and ") + logFilePath, true);
+		OutputToLog (string ("Monitor and ") + currentConfFile.GetLGFPath (), true);
 		//cout << "Monitor and " << logFilePath << endl;
 
-	} else if (shouldLogToMonitor)
+	} else if (toMonitor)
 	{
 		OutputToLog ("Monitor", true);
 		//cout << "Monitor" << endl;
 
-	} else if (shouldLogToFile)
+	} else if (toFile)
 	{
-		OutputToLog (logFilePath, true);
+		OutputToLog (currentConfFile.GetLGFPath (), true);
 		//cout << logFilePath << endl;
 
 	}
@@ -837,13 +844,13 @@ void OutputConfigFileData ()
 
 bool OutputToLog (string sentOutput, bool createNewLine)
 {
-	if (shouldLogToFile && !logFile.is_open ())
+	if (currentConfFile.ShouldLogToFile () && !logFile.is_open ())
 	{
 		cout << "FATAL ERROR: Cannot output to file, there seems to have been an error in opening the file" << endl;
 
 		return false;
 
-	} else if (shouldLogToFile && shouldLogToMonitor) //Log to both
+	} else if (currentConfFile.ShouldLogToFile () && currentConfFile.ShouldLogToMonitor ()) //Log to both
 	{
 		logFile << sentOutput;
 		cout << sentOutput;
@@ -857,7 +864,7 @@ bool OutputToLog (string sentOutput, bool createNewLine)
 
 		return true;
 
-	} else if (shouldLogToFile)
+	} else if (currentConfFile.ShouldLogToFile ())
 	{
 		logFile << sentOutput;
 
@@ -869,7 +876,7 @@ bool OutputToLog (string sentOutput, bool createNewLine)
 
 		return true;
 
-	} else if (shouldLogToMonitor)
+	} else if (currentConfFile.ShouldLogToMonitor ())
 	{
 		cout << sentOutput;
 
