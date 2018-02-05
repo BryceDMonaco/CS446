@@ -1,5 +1,5 @@
 #include <string>
-#include <iostream>
+//#include <iostream> //Used for some in-class debug
 
 using namespace std;
 
@@ -238,7 +238,7 @@ ConfigFile& ConfigFile::operator= (const ConfigFile& sentConfig)
 {
 	versionNumber = sentConfig.GetVersionNumber ();
 
-	cout << "OP= recieved VN: " << sentConfig.GetVersionNumber () << " VN set to " << versionNumber << endl;
+	//cout << "OP= recieved VN: " << sentConfig.GetVersionNumber () << " VN set to " << versionNumber << endl;
 
 	metaDataFilePath = sentConfig.GetMDFPath ();
 	logFilePath = sentConfig.GetLGFPath ();

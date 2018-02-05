@@ -20,6 +20,7 @@
 #include <vector>	//Not actually used in latest version
 
 #include "ConfigFile.cpp"
+#include "MetaDataObject.cpp"
 
 #include <stdio.h>
 
