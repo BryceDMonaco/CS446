@@ -6,7 +6,7 @@
 	Compile with: g++ Sim01.cpp -o Sim01 -std=c++11 or makefile ("make" with the cd being the Sim01 directory)
 
 	Note: 	In the case of a fatal error the simulation will print directly to the console since
-			the error might be output-related
+			the error might be output-related. (Note to grader: MetaDataObject.cpp is included in the submission but is not used)
 
 	TODO:	Store mdf commands in an ADT
 
@@ -20,7 +20,7 @@
 #include <vector>	//Not actually used in latest version
 
 #include "ConfigFile.cpp"
-//#include "MetaDataObject.cpp" //This doesn't get used, might be useful for future projects (Note to grader: this file is included in the submission but is not used)
+//#include "MetaDataObject.cpp" //This doesn't get used, might be useful for future projects
 
 #include <stdio.h>	//Used primarily in ParseCommand for sscanf functionality
 
