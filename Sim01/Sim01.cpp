@@ -3,7 +3,7 @@
 	CS 446
 	Project 1
 
-	Compile with: g++ Sim01.cpp -o Sim01 -std=c++11 or makefile
+	Compile with: g++ Sim01.cpp -o Sim01 -std=c++11 or makefile ("make" with the cd being the Sim01 directory)
 
 	Note: 	In the case of a fatal error the simulation will print directly to the console since
 			the error might be output-related
@@ -20,52 +20,29 @@
 #include <vector>	//Not actually used in latest version
 
 #include "ConfigFile.cpp"
-#include "MetaDataObject.cpp"
+//#include "MetaDataObject.cpp" //This doesn't get used, might be useful for future projects
 
-#include <stdio.h>
+#include <stdio.h>	//Used primarily in ParseCommand for sscanf functionality
 
 using namespace std;
-
-//Below commented out because the ConfigFile ADT handles it now
-/*
-//Global configuration variables
-float versionNumber;		//Float to allow 1.XX
-
-string metaDataFilePath;	//Path to the current mdf, note only ScanConfigFile () can modify this
-string logFilePath;			//Path to the global log file (if one is used)
-
-//ifstream metaDataFile;	//Made local variable in meta data run function
-
-
-
-int monitorDispTime;		//msec
-int processorCycleTime;		//msec
-int scannerCycleTime;		//msec
-int hardDriveCycleTime;		//msec
-int keyboardCycleTime;		//msec
-int memoryCycleTime;		//msec
-int projectorCycleTime;		//msec
-
-bool shouldLogToFile = false;
-bool shouldLogToMonitor = false;
-*/
 
 ofstream logFile;
 string currentLGFPath;
 
 ConfigFile currentConfFile;
-vector<ConfigFile> allConfigFiles;
+vector<ConfigFile> allConfigFiles; //Not used, currently once a config file is done it just gets overwritten in the currentConfFile
 
 bool currentlyRunningSystem = false;
 bool currentlyRunningApplication = false;
 
-bool RunMetaDataFile ();
-bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile);
-bool ParseCommand (string sentCommand);
-string ScanNextLine (ifstream& sentStream);
-string ScanNextLine (ifstream& sentStream, char delimChar);
-void OutputConfigFileData (bool toFile, bool toMonitor);
-bool OutputToLog (string sentOutput, bool createNewLine);
+bool RunMetaDataFile ();										//Loops through the metadata file, calls ParseCommand () and ExecuteCommand ()
+bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile);	//Scans through the config file and imports all of the required data, fails if it can't find all
+bool ParseCommand (string sentCommand);							//Takes a command as a string and parses it and then "executes" it
+//bool ExecuteCommand (MetaDataObject sentCommand);				//Takes a MetaDataObject and "runs" it
+string ScanNextLine (ifstream& sentStream);						//A generic IO function to scan a line from a file, made to clean up code
+string ScanNextLine (ifstream& sentStream, char delimChar);		//That same generic function but also with a delim character
+void OutputConfigFileData (bool toFile, bool toMonitor);		//Outputs the config file information to the relevant media in the required format
+bool OutputToLog (string sentOutput, bool createNewLine);		//Hands output to the log file AND/OR the monitor
 
 int main (int argc, char* argv[])
 {
@@ -113,7 +90,13 @@ int main (int argc, char* argv[])
 
 		    RunMetaDataFile ();
 
-		    OutputToLog(string ("(End of config file: ") + argv[i] + ")\n", true); //Not required output but this helps make the log easier to read with multiple config files
+		    OutputToLog(string ("(End of config file: ") + argv[i] + ")", true); //Not required output but this helps make the log easier to read with multiple config files
+
+		    if ((i + 1) < argc)
+		    {
+		    	OutputToLog ("\n", false); //Create an extra line between multiple config files, again not required output but it makes the log easier to read
+
+		    }
 
 		    if (logFile.is_open ())
 		    {
