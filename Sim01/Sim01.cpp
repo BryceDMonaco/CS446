@@ -5,8 +5,13 @@
 
 	Compile with: g++ Sim01.cpp -o Sim01 -std=c++11 or makefile ("make" with the cd being the Sim01 directory)
 
-	Note: 	In the case of a fatal error the simulation will print directly to the console since
-			the error might be output-related. (Note to grader: MetaDataObject.cpp is included in the submission but is not used)
+	Notes: 	In the case of a fatal error the simulation will print directly to the console since
+			the error might be output-related. 
+
+			(Note to grader: MetaDataObject.cpp is not included in the submission, see line 28)
+
+			Most functions contain cout calls which are commented out, these were used for debug purposes 
+			and are left as comments incase they are needed again as well as to show a bit of the debug process.
 
 	TODO:	Store mdf commands in an ADT
 
@@ -26,12 +31,13 @@
 
 using namespace std;
 
-ofstream logFile;
-string currentLGFPath;
+ofstream logFile; //Gets opened and closed whenever a new config file is scanned successfully
+string currentLGFPath; //Stores the path to the current log file so that it doesn't need to be passed as an argument to multiple functions
 
-ConfigFile currentConfFile;
+ConfigFile currentConfFile; //Assuming ScanConfigFile () runs successfully, this contains all the information read in from the current config file
 vector<ConfigFile> allConfigFiles; //Not used, currently once a config file is done it just gets overwritten in the currentConfFile
 
+//The following are flag booleans to make sure that there are no extra/missing start or finish commands in the metadata
 bool currentlyRunningSystem = false;
 bool currentlyRunningApplication = false;
 
@@ -50,14 +56,14 @@ int main (int argc, char* argv[])
 	 if (argc < 2) 
 	 {
         // Tell the user how to run the program
-        cout << "Usage: " << argv[0] << " NAME_OF_CONFIG_FILE_WITH_EXTENSION" << endl;
+        cout << "Usage: " << argv[0] << " NAME_OF_CONFIG_FILE_WITH_EXTENSION (Multiple config files allowed with spaces between names)" << endl;
 
         return 0;
     } else
     {
     	//cout << "Opening config file \"" << argv [1] << "\"..." << endl;
 
-    	for (int i = 1; i < argc; i++)
+    	for (int i = 1; i < argc; i++) //A loop in case there is more than one config file in the arguments (command would be of the form "./Sim01 config1.conf config2.conf (etc)")
     	{
 
     		if (!ScanConfigFile (argv [i], currentConfFile)) //Function returns false if there was an error
@@ -116,6 +122,7 @@ int main (int argc, char* argv[])
 }
 
 //Returns true if the entire file is parsed correctly
+//Essentially just scans in potential commands one at a time (assuming no typos) and sends them to ParseCommand () to see if they're actually commands
 bool RunMetaDataFile ()
 {
 	ifstream mdfFile;
@@ -217,6 +224,8 @@ bool RunMetaDataFile ()
 }
 
 //Returns true if successful, false otherwise
+//Attempts to find all 13 lines required for the config file. If even one is missing the function returns false and the program closes.
+//Note: This function assumes that the values will not always be in the same order so it must scan in a line and then figure out which line it has
 bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 {
 	//Open the config fire
@@ -458,6 +467,8 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 }
 
+//Returns true if the command is parse-able, false if there are any errors/issues that it found
+//Takes the potential command sent to it and attempts to find its command character, its keyword, and its duration then, if all are found, it "runs" it
 //S=OS, A=Application, P=Process, I=Input, O=Output
 bool ParseCommand (string sentCommand)
 {
@@ -760,6 +771,9 @@ bool ParseCommand (string sentCommand)
 
 }
 
+//Returns the next whole line of the sent input file
+//Must be read into a char array which is then converted to a string object which is returned
+//Note: Does not work for lines over 50 characters in length
 string ScanNextLine (ifstream& sentStream)
 {
 	char line[50];
@@ -772,7 +786,10 @@ string ScanNextLine (ifstream& sentStream)
 
 }
 
-//Overload with delim char added
+//Returns the next set of characters up to (but not including) the delim char (the delim char is marked as "read" but it is not returned in the string)
+//Must be read into a char array which is then converted to a string object which is returned
+//Note: Does not work for lines over 50 characters in length
+//Since some sets of characters start with un-needed whitespace the function has a quick loop to shorten the string which prevents any parsing errors
 string ScanNextLine (ifstream& sentStream, char delimChar)
 {
 	char line[50];
@@ -791,6 +808,8 @@ string ScanNextLine (ifstream& sentStream, char delimChar)
 
 }
 
+//Ouputs all the data read in from the config file in the required format
+//This function assumes all data has already been correctly scanned and stored into the currentConfFile object
 void OutputConfigFileData (bool toFile, bool toMonitor)
 {
 	//Legacy Output Format
@@ -835,6 +854,8 @@ void OutputConfigFileData (bool toFile, bool toMonitor)
 	return;
 }
 
+//Returns true if the IO operation could be completed, false otherwise (i.e. the log file isn't already opened or the config file did not specify where to output)
+//This function is used as a module to handle output so that all other functions do not need to worry about where to output. All other functions send their output string and this function outputs it accordingly
 bool OutputToLog (string sentOutput, bool createNewLine)
 {
 	if (currentConfFile.ShouldLogToFile () && !logFile.is_open ())
