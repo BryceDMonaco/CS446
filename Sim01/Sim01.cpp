@@ -8,7 +8,7 @@
 	Note: 	In the case of a fatal error the simulation will print directly to the console since
 			the error might be output-related
 
-	TODO:	Arbitrary number of config files, store config files in an ADT, store mdf commands in an ADT
+	TODO:	Arbitrary number of config files, store mdf commands in an ADT
 
 */
 
@@ -34,6 +34,7 @@ string logFilePath;			//Path to the global log file (if one is used)
 //ifstream metaDataFile;	//Made local variable in meta data run function
 ofstream logFile;
 
+
 int monitorDispTime;		//msec
 int processorCycleTime;		//msec
 int scannerCycleTime;		//msec
@@ -44,6 +45,10 @@ int projectorCycleTime;		//msec
 
 bool shouldLogToFile = false;
 bool shouldLogToMonitor = false;
+
+ConfigFile currentConfFile;
+vector<ConfigFile> allConfigFiles;
+
 bool currentlyRunningSystem = false;
 bool currentlyRunningApplication = false;
 

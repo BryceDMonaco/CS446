@@ -1,4 +1,5 @@
 #include <string>
+#include <iostream>
 
 using namespace std;
 
@@ -21,16 +22,22 @@ class ConfigFile
 		void SetProjectorTime (int sentValue);
 
 		//Access Functions
-		float GetVersionNumber ();
-		string GetMDFPath ();
-		string GetLGFPath ();
-		int GetMonitorTime ();
-		int GetProcessorTime ();
-		int GetScannerTime ();
-		int GetHardDriveTime ();
-		int GetKeyboardTime ();
-		int GetMemoryTime ();
-		int GetProjectorTime ();
+		float GetVersionNumber () const;
+		string GetMDFPath () const;
+		string GetLGFPath () const;
+		int GetMonitorTime () const;
+		int GetProcessorTime () const;
+		int GetScannerTime () const;
+		int GetHardDriveTime () const;
+		int GetKeyboardTime () const;
+		int GetMemoryTime () const;
+		int GetProjectorTime () const;
+
+		bool ShouldLogToFile () const;
+		bool ShouldLogToMonitor () const;
+
+		//Operator Overloads
+		ConfigFile& operator= (const ConfigFile& sentConfig);
 
 	private:
 		float versionNumber;		//Float to allow 1.XX
@@ -155,62 +162,98 @@ void ConfigFile::SetProjectorTime (int sentValue)
 /// Access Functions                              ///
 /////////////////////////////////////////////////////
 
-float ConfigFile::GetVersionNumber ()
+float ConfigFile::GetVersionNumber () const
 {
 	return versionNumber;
 
 }
 
-string ConfigFile::GetMDFPath ()
+string ConfigFile::GetMDFPath () const
 {
 	return metaDataFilePath;
 
 }
 
-string ConfigFile::GetLGFPath ()
+string ConfigFile::GetLGFPath () const
 {
 	return logFilePath;
 
 }
 
-int ConfigFile::GetMonitorTime ()
+int ConfigFile::GetMonitorTime () const
 {
 	return monitorDispTime;
 
 }
 
-int ConfigFile::GetProcessorTime ()
+int ConfigFile::GetProcessorTime () const
 {
 	return processorCycleTime;
 
 }
 
-int ConfigFile::GetScannerTime ()
+int ConfigFile::GetScannerTime () const
 {
 	return scannerCycleTime;
 
 }
 
-int ConfigFile::GetHardDriveTime ()
+int ConfigFile::GetHardDriveTime () const
 {
 	return hardDriveCycleTime;
 
 }
 
-int ConfigFile::GetKeyboardTime ()
+int ConfigFile::GetKeyboardTime () const
 {
 	return keyboardCycleTime;
 
 }
 
-int ConfigFile::GetMemoryTime ()
+int ConfigFile::GetMemoryTime () const
 {
 	return memoryCycleTime;
 
 }
 
-int ConfigFile::GetProjectorTime ()
+int ConfigFile::GetProjectorTime () const
 {
 	return projectorCycleTime;
+
+}
+
+bool ConfigFile::ShouldLogToFile () const
+{
+	return shouldLogToFile;
+
+}
+
+bool ConfigFile::ShouldLogToMonitor () const
+{
+	return shouldLogToMonitor;
+
+}
+
+ConfigFile& ConfigFile::operator= (const ConfigFile& sentConfig)
+{
+	versionNumber = sentConfig.GetVersionNumber ();
+
+	cout << "OP= recieved VN: " << sentConfig.GetVersionNumber () << " VN set to " << versionNumber << endl;
+
+	metaDataFilePath = sentConfig.GetMDFPath ();
+	logFilePath = sentConfig.GetLGFPath ();
+
+	monitorDispTime = sentConfig.GetMonitorTime ();			//msec
+	processorCycleTime = sentConfig.GetProcessorTime ();	//msec
+	scannerCycleTime = sentConfig.GetScannerTime ();		//msec
+	hardDriveCycleTime = sentConfig.GetHardDriveTime ();	//msec
+	keyboardCycleTime = sentConfig.GetKeyboardTime ();		//msec
+	memoryCycleTime = sentConfig.GetMemoryTime ();			//msec
+	projectorCycleTime = sentConfig.GetProjectorTime ();	//msec
+
+	shouldLogToFile = sentConfig.ShouldLogToFile ();
+	shouldLogToMonitor = sentConfig.ShouldLogToMonitor ();
+
+	return *this;
 
 }
