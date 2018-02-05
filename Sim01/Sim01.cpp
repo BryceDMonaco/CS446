@@ -8,7 +8,7 @@
 	Note: 	In the case of a fatal error the simulation will print directly to the console since
 			the error might be output-related
 
-	TODO:	Arbitrary number of config files, store mdf commands in an ADT
+	TODO:	Store mdf commands in an ADT
 
 */
 
@@ -80,41 +80,51 @@ int main (int argc, char* argv[])
     {
     	//cout << "Opening config file \"" << argv [1] << "\"..." << endl;
 
-    	if (!ScanConfigFile (argv [1], currentConfFile)) //Function returns false if there was an error
+    	for (int i = 1; i < argc; i++)
     	{
-    		cout << "FATAL ERROR: There was an error with the config file." << endl;
 
-    		return 0;
+    		if (!ScanConfigFile (argv [i], currentConfFile)) //Function returns false if there was an error
+	    	{
+	    		cout << "FATAL ERROR: There was an error with the config file." << endl;
+
+	    		return 0;
+
+	    	}
+
+	    	//From this point on, the config file has been read successfully
+
+		    if (currentConfFile.ShouldLogToFile ())
+		    {
+		    	currentLGFPath = currentConfFile.GetLGFPath ();
+
+		    	logFile.open (currentLGFPath);
+
+		    }
+
+		    if (!OutputToLog ("Configuration File Data", true)) //OutputToLog returns false if output is incorrectly configured
+		    {
+		    	cout << "FATAL ERROR: There was an output error. Closing the simulation." << endl;
+
+		    	return 0;
+
+		    }
+
+		    OutputConfigFileData (currentConfFile.ShouldLogToFile (), currentConfFile.ShouldLogToMonitor ());
+
+		    RunMetaDataFile ();
+
+		    OutputToLog(string ("(End of config file: ") + argv[i] + ")\n", true); //Not required output but this helps make the log easier to read with multiple config files
+
+		    if (logFile.is_open ())
+		    {
+
+		    	logFile.close ();
+
+		    }
 
     	}
 
-    }
-
-    //From this point on, the config file has been read successfully
-
-    if (currentConfFile.ShouldLogToFile ())
-    {
-    	currentLGFPath = currentConfFile.GetLGFPath ();
-
-    	logFile.open (currentLGFPath);
-
-    }
-
-    if (!OutputToLog ("Configuration File Data", true)) //OutputToLog returns false if output is incorrectly configured
-    {
-    	cout << "FATAL ERROR: There was an output error. Closing the simulation." << endl;
-
-    	return 0;
-
-    }
-
-    OutputConfigFileData (currentConfFile.ShouldLogToFile (), currentConfFile.ShouldLogToMonitor ());
-
-    RunMetaDataFile ();
-
-    if (logFile.is_open ())
-    {
-    	logFile.close ();
+    	
 
     }
 
