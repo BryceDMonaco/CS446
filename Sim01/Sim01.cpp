@@ -20,7 +20,7 @@
 #include <vector>	//Not actually used in latest version
 
 #include "ConfigFile.cpp"
-//#include "MetaDataObject.cpp" //This doesn't get used, might be useful for future projects
+//#include "MetaDataObject.cpp" //This doesn't get used, might be useful for future projects (Note to grader: this file is included in the submission but is not used)
 
 #include <stdio.h>	//Used primarily in ParseCommand for sscanf functionality
 
