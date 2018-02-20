@@ -1,0 +1,11 @@
+Configuration File Data
+Monitor = 20ms/cycle
+Processor = 10ms/cycle
+Scanner = 25ms/cycle
+Hard Drive = 15ms/cycle
+Keyboard = 50ms/cycle
+Memory = 30ms/cycle
+Projector = 10ms/cycle
+System Memory = 1024KB
+Logged to: Monitor and logfile_1.lgf
+(End of config file: ExConfig.conf)

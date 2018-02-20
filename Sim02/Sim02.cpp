@@ -94,7 +94,7 @@ int main (int argc, char* argv[])
 
 		    OutputConfigFileData (currentConfFile.ShouldLogToFile (), currentConfFile.ShouldLogToMonitor ());
 
-		    RunMetaDataFile ();
+		    //RunMetaDataFile ();
 
 		    OutputToLog(string ("(End of config file: ") + argv[i] + ")", true); //Not required output but this helps make the log easier to read with multiple config files
 
@@ -246,6 +246,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 	int keyboardCycleTimeTEMP;		//msec
 	int memoryCycleTimeTEMP;		//msec
 	int projectorCycleTimeTEMP;		//msec
+	int systemMemoryTEMP;			//KB
 
 	bool shouldLogToFileTEMP = false;
 	bool shouldLogToMonitorTEMP = false;
@@ -274,8 +275,8 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 	}
 
-	//A standard config file should contain exactly 13 lines, first and last are start and end, 11 values
-	for (int i = 0; i < 11; i++)
+	//A standard config file should contain exactly 14 lines, first and last are start and end, 12 values
+	for (int i = 0; i < 12; i++)
 	{
 		if (cfgFile.eof ())
 		{
@@ -353,7 +354,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 				//break;
 
-			} else if (currentLine.find ("Memory") != string::npos)
+			} else if (currentLine.find ("Memory c") != string::npos) //Search for "Memory c" to find Memory cycle time
 			{
 
     			sscanf(currentLine.c_str(), "Memory cycle time {msec}:%d", &memoryCycleTimeTEMP);
@@ -417,6 +418,36 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 				//break;
 
+			} else if (currentLine.find ("System memory") != string::npos)
+			{
+
+				if (currentLine.find ("kbytes") != string::npos)
+				{
+					sscanf(currentLine.c_str(), "System memory {kbytes}:%d", &systemMemoryTEMP);
+
+				} else if (currentLine.find ("Mbytes") != string::npos)
+				{
+					int temp;
+					sscanf(currentLine.c_str(), "System memory {Mbytes}:%d", &temp);
+
+					systemMemoryTEMP = temp * 1000;
+
+				} else if (currentLine.find ("Gbytes") != string::npos)
+				{
+					int temp;
+					sscanf(currentLine.c_str(), "System memory {Gbytes}:%d", &temp);
+
+					systemMemoryTEMP = temp * 1000000;
+
+				} else
+				{
+					//Can't find a unit, just assume KB
+					sscanf(currentLine.c_str(), "System memory {%*s}:%d", &systemMemoryTEMP);
+
+				}
+
+				//break;
+
 			} else
 			{
 				cout << "Error: Could not find valid config data, perhaps a field is missing?" << endl;
@@ -456,6 +487,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 		sentFile.SetKeyboardTime (keyboardCycleTimeTEMP);
 		sentFile.SetMemoryTime (memoryCycleTimeTEMP);
 		sentFile.SetProjectorTime (projectorCycleTimeTEMP);
+		sentFile.SetSystemMemoryKB (systemMemoryTEMP);
 
 		sentFile.SetLogPreferences (shouldLogToFileTEMP, shouldLogToMonitorTEMP);
 
@@ -808,6 +840,7 @@ string ScanNextLine (ifstream& sentStream, char delimChar)
 
 }
 
+//As of Sim02 this function isn't needed because the information is no longer required output
 //Ouputs all the data read in from the config file in the required format
 //This function assumes all data has already been correctly scanned and stored into the currentConfFile object
 void OutputConfigFileData (bool toFile, bool toMonitor)
@@ -831,6 +864,7 @@ void OutputConfigFileData (bool toFile, bool toMonitor)
 	OutputToLog (string ("Keyboard = ") + to_string (currentConfFile.GetKeyboardTime ()) + "ms/cycle", true);
 	OutputToLog (string ("Memory = ") + to_string (currentConfFile.GetMemoryTime ()) + "ms/cycle", true);
 	OutputToLog (string ("Projector = ") + to_string (currentConfFile.GetProjectorTime ()) + "ms/cycle", true);
+	OutputToLog (string ("System Memory = ") + to_string (currentConfFile.GetSystemMemory ()) + "KB", true);
 	OutputToLog (string ("Logged to: "), false);
 
 

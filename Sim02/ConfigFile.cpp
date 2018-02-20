@@ -28,8 +28,8 @@ class ConfigFile
 		void SetMemoryTime (int sentValue);
 		void SetProjectorTime (int sentValue);
 		void SetSystemMemoryKB (int sentValue);
-		void SetSystemMemoryMB (int sentValue); //Needs to convert to KB
-		void SetSystemMemoryGB (int sentValue); //Needs to convert to KB
+		//void SetSystemMemoryMB (int sentValue); //Needs to convert to KB (commented out because the scan function converts it)
+		//void SetSystemMemoryGB (int sentValue); //Needs to convert to KB
 
 		void SetLogPreferences (bool toFile, bool toMonitor);
 
@@ -181,6 +181,14 @@ void ConfigFile::SetLogPreferences (bool toFile, bool toMonitor)
 
 }
 
+void ConfigFile::SetSystemMemoryKB (int sentValue)
+{
+	systemMemory = sentValue;
+
+	return;
+
+}
+
 /////////////////////////////////////////////////////
 /// Access Functions                              ///
 /////////////////////////////////////////////////////
@@ -257,6 +265,12 @@ bool ConfigFile::ShouldLogToMonitor () const
 
 }
 
+int ConfigFile::GetSystemMemory () const //Returned in KB
+{
+	return systemMemory;
+
+}
+
 ConfigFile& ConfigFile::operator= (const ConfigFile& sentConfig)
 {
 	versionNumber = sentConfig.GetVersionNumber ();
@@ -276,6 +290,8 @@ ConfigFile& ConfigFile::operator= (const ConfigFile& sentConfig)
 
 	shouldLogToFile = sentConfig.ShouldLogToFile ();
 	shouldLogToMonitor = sentConfig.ShouldLogToMonitor ();
+
+	systemMemory = sentConfig.GetSystemMemory ();
 
 	return *this;
 
