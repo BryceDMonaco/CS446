@@ -94,7 +94,7 @@ int main (int argc, char* argv[])
 
 		    OutputConfigFileData (currentConfFile.ShouldLogToFile (), currentConfFile.ShouldLogToMonitor ());
 
-		    //RunMetaDataFile ();
+		    RunMetaDataFile ();
 
 		    OutputToLog(string ("(End of config file: ") + argv[i] + ")", true); //Not required output but this helps make the log easier to read with multiple config files
 
