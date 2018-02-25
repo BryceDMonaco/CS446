@@ -12,6 +12,8 @@ void* WaitForMicroSeconds (void* sentTime);
 float CountToSeconds (unsigned int sentCount);
 void* PrintValue (void* sentValue);
 
+float stamp;
+
 int main ()
 {	
 	systemStart = chrono::steady_clock::now ();
@@ -24,6 +26,8 @@ int main ()
 
 	pthread_create(&tid, NULL, WaitForMicroSeconds, (void *) 3000000);
 	pthread_join(tid, NULL);
+
+	cout << "Stamp: " << stamp << endl;
 
 
 	return 0;
@@ -56,7 +60,9 @@ void* WaitForMicroSeconds (void* sentTime)
 
 	auto durs = chrono::duration_cast<chrono::microseconds>(timer-systemStart);
 
-	cout << "dur count = " << CountToSeconds (durs.count ()) << endl;
+	//cout << "dur count = " << CountToSeconds (durs.count ()) << endl;
+
+	stamp = CountToSeconds (durs.count ());
 
 	pthread_exit (0);
 

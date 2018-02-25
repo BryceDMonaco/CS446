@@ -1,23 +1,34 @@
-0.000001 - Simulator program starting
-0.000140 - OS: preparing process 1
-0.000231 - Process 1: start processing action
-0.011312 - Process 1: end processing action
-M{allocate}2 - 60
-O{monitor}7 - 140
-I{hard drive}8 - 120
-O{projector}20 - 200
-0.011723 - Process 1: start processing action
-0.017792 - Process 1: end processing action
-O{projector}4 - 40
-M{block}6 - 180
-I{keyboard}17 - 850
-M{block}4 - 120
-0.018142 - Process 1: start processing action
-0.023211 - Process 1: end processing action
-0.023288 - Process 1: start processing action
-0.029841 - Process 1: end processing action
-O{hard drive}6 - 90
-0.030095 - Process 1: start processing action
-0.048166 - Process 1: end processing action
-0.048349 - OS: removing process 1
+0.000035 - Simulator program starting
+0.000293 - OS: preparing process 1
+0.000426 - OS: starting process 1
+0.000523 - Process 1: start processing action (Run Time: 110ms)
+0.110604 - Process 1: end processing action
+0.110832 - Process 1: allocating memory (Run Time: 60ms)
+0.170985 - Process 1: memory allocated at 0x4e82f63a
+0.171250 - Process 1: start monitor output (Run Time: 140ms)
+0.311385 - Process 1: end monitor output
+0.311694 - Process 1: start hard drive input (Run Time: 120ms)
+0.431826 - Process 1: end hard drive input
+0.432057 - Process 1: start projector output (Run Time: 200ms)
+0.632177 - Process 1: end projector output
+0.632450 - Process 1: start processing action (Run Time: 60ms)
+0.692555 - Process 1: end processing action
+0.692781 - Process 1: start projector output (Run Time: 40ms)
+0.732904 - Process 1: end projector output
+0.733166 - Process 1: start memory blocking (Run Time: 180ms)
+0.913289 - Process 1: end memory blocking
+0.913568 - Process 1: start keyboard input (Run Time: 850ms)
+1.763692 - Process 1: end keyboard input
+1.764140 - Process 1: start memory blocking (Run Time: 120ms)
+1.884297 - Process 1: end memory blocking
+1.884700 - Process 1: start processing action (Run Time: 50ms)
+1.934853 - Process 1: end processing action
+1.935051 - Process 1: start processing action (Run Time: 50ms)
+1.985151 - Process 1: end processing action
+1.985350 - Process 1: start hard drive output (Run Time: 90ms)
+2.075451 - Process 1: end hard drive output
+2.075652 - Process 1: start processing action (Run Time: 180ms)
+2.255751 - Process 1: end processing action
+2.256016 - OS: removing process 1
 (End of config file: ExConfig.conf)
+2.256213 - Simulator program ending

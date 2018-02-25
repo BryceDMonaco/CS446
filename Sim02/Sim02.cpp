@@ -23,12 +23,13 @@
 #include <ostream>
 #include <fstream>
 #include <string>
-#include <sstream> 	//Not actually used in latest version
+#include <sstream> 	//Used to convert int memory address to hex
 #include <vector>	//Not actually used in latest version
-#include <chrono>
+#include <chrono>	//Used for all of the timers
 #include <cstdlib> 	//Used to generated random int for PCB memory location
 #include <limits.h> //Used for INT_MAX for the random int
 #include <pthread.h>
+#include <time.h>	//NOT used for timers (see chrono), instead just used to seed random generator
 
 #include "Clock.cpp"
 #include "ConfigFile.cpp"
@@ -50,6 +51,8 @@ vector<ProcessControlBlock> allPCBs; //This won't get used in Sim02
 Clock thisClock;
 chrono::steady_clock::time_point systemStart;
 
+float stamp; //Used because I can't figure out how to get a pthread to return a float value
+
 //The following are flag booleans to make sure that there are no extra/missing start or finish commands in the metadata
 bool currentlyRunningSystem = false;
 bool currentlyRunningApplication = false;
@@ -62,8 +65,11 @@ string ScanNextLine (ifstream& sentStream);						//A generic IO function to scan
 string ScanNextLine (ifstream& sentStream, char delimChar);		//That same generic function but also with a delim character
 void OutputConfigFileData (bool toFile, bool toMonitor);		//Outputs the config file information to the relevant media in the required format
 bool OutputToLog (string sentOutput, bool createNewLine);		//Hands output to the log file AND/OR the monitor
-float WaitForMicroSeconds (unsigned int sentTime);
+//float WaitForMicroSeconds (unsigned int sentTime);			//Replaced with pthread version below
+void* WaitForMicroSeconds (void* sentTime);
 float CountToSeconds (unsigned int sentCount);
+float RunTimerThread (long sentTime);							//Used to reduce duplicate code lines
+int GenerateRandomMemoryAddress ();
 
 int main (int argc, char* argv[])
 {
@@ -76,6 +82,8 @@ int main (int argc, char* argv[])
         return 0;
     } else
     {
+    	srand (time(NULL)); //Just quickly seed the random generator, only use of a function from time.h
+
     	//cout << "Opening config file \"" << argv [1] << "\"..." << endl;
 
     	for (int i = 1; i < argc; i++) //A loop in case there is more than one config file in the arguments (command would be of the form "./Sim01 config1.conf config2.conf (etc)")
@@ -115,7 +123,9 @@ int main (int argc, char* argv[])
 		    //Note:	If there are multiple config files this will be output at roughly 0 for each one (systemStart gets reset every config file from the line above)
 		    //		If it is preferred that the time shown for Simulator program starting is based off of the start time of the original config then it can be moved out of the loop
 		    //Waits for 1 uSecond because sometimes 0 uS causes some strange issues
-		    if (!OutputToLog (string (to_string (WaitForMicroSeconds (1))) + " - Simulator program starting", true)) //OutputToLog returns false if output is incorrectly configured
+
+
+		    if (!OutputToLog (string (to_string (RunTimerThread (1))) + " - Simulator program starting", true)) //OutputToLog returns false if output is incorrectly configured
 		    {
 		    	cout << "FATAL ERROR: There was an output error. Closing the simulation." << endl;
 
@@ -132,9 +142,13 @@ int main (int argc, char* argv[])
 
 		    OutputToLog(string ("(End of config file: ") + argv[i] + ")", true); //Not required output but this helps make the log easier to read with multiple config files
 
-		    if ((i + 1) < argc)
+		    if ((i + 1) < argc) //True if there is at least one more config file
 		    {
 		    	OutputToLog ("\n", false); //Create an extra line between multiple config files, again not required output but it makes the log easier to read
+
+		    } else //Last config file finished
+		    {
+		    	OutputToLog (string (to_string (RunTimerThread (1))) + " - Simulator program ending", true);
 
 		    }
 
@@ -209,9 +223,9 @@ bool RunMetaDataFile ()
 
 	} else
 	{
-		OutputToLog (string (to_string (WaitForMicroSeconds (1))) + " - OS: preparing process 1", true);
-
 		currentPCB = ProcessControlBlock (1, -1); //Defaulted to memory location -1 since it hasn't been assigned yet in mdf
+
+		OutputToLog (string (to_string (RunTimerThread (1))) + " - OS: preparing process " + to_string (currentPCB.GetPID ()), true);
 
 	}
 
@@ -237,7 +251,7 @@ bool RunMetaDataFile ()
 			{
 				reachedEndOfFile = true;
 
-				OutputToLog (string (to_string (WaitForMicroSeconds (1))) + " - OS: removing process 1", true);
+				OutputToLog (string (to_string (RunTimerThread (1))) + " - OS: removing process " + to_string (currentPCB.GetPID ()), true);
 
 				currentPCB.SetState (4); //Terminate
 
@@ -637,6 +651,8 @@ bool ParseCommand (string sentCommand)
 			{
 				currentlyRunningApplication = true;
 
+				OutputToLog (string (to_string (RunTimerThread (1))) + " - OS: starting process " + to_string (currentPCB.GetPID ()), true);
+
 				return true;
 
 			}
@@ -688,8 +704,10 @@ bool ParseCommand (string sentCommand)
 
 			}
 
-			OutputToLog (string (to_string (WaitForMicroSeconds (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start processing action", true);
-			OutputToLog (string (to_string (WaitForMicroSeconds (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end processing action", true);
+			duration *= currentConfFile.GetProcessorTime (); //Convert from units to ms
+
+			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start processing action (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end processing action", true);
 
 			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetProcessorTime ()), true);
 			//cout << sentCommand << " - " << (duration * processorCycleTime) << endl;
@@ -749,17 +767,32 @@ bool ParseCommand (string sentCommand)
 
 		if (keyword.find ("hard drive") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetHardDriveTime ()), true);
+			duration *= currentConfFile.GetHardDriveTime (); //Convert from units to ms
+
+			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start hard drive input (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end hard drive input", true);
+
+			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetHardDriveTime ()), true);
 			//cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
 
 		} else if (keyword.find ("keyboard") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetKeyboardTime ()), true);
+			duration *= currentConfFile.GetKeyboardTime (); //Convert from units to ms
+
+			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start keyboard input (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end keyboard input", true);
+
+			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetKeyboardTime ()), true);
 			//cout << sentCommand << " - " << (duration * keyboardCycleTime) << endl;
 
 		} else if (keyword.find ("scanner") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetScannerTime ()), true);
+			duration *= currentConfFile.GetScannerTime (); //Convert from units to ms
+
+			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start scanner input (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end scanner input", true);
+
+			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetScannerTime ()), true);
 			//cout << sentCommand << " - " << (duration * scannerCycleTime) << endl;
 
 		} else
@@ -823,17 +856,32 @@ bool ParseCommand (string sentCommand)
 
 		if (keyword.find ("hard drive") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetHardDriveTime ()), true);
+			duration *= currentConfFile.GetHardDriveTime (); //Convert from units to ms
+
+			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start hard drive output (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end hard drive output", true);
+
+			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetHardDriveTime ()), true);
 			//cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
 
 		} else if (keyword.find ("monitor") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetMonitorTime ()), true);
+			duration *= currentConfFile.GetMonitorTime (); //Convert from units to ms
+
+			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start monitor output (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end monitor output", true);
+
+			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetMonitorTime ()), true);
 			//cout << sentCommand << " - " << (duration * monitorDispTime) << endl;
 
 		} else if (keyword.find ("projector") != string::npos)
 		{
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetProjectorTime ()), true);
+			duration *= currentConfFile.GetProjectorTime (); //Convert from units to ms
+
+			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start projector output (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end projector output", true);
+
+			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetProjectorTime ()), true);
 			//cout << sentCommand << " - " << (duration * projectorCycleTime) << endl;
 
 		} else
@@ -861,7 +909,43 @@ bool ParseCommand (string sentCommand)
 
 		}
 
-		OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetMemoryTime ()), true);
+		//Need to detect if it's blocking or allocating
+		if (sentCommand.find ("allocate") != string::npos)
+		{
+			duration *= currentConfFile.GetMemoryTime (); //Convert from units to ms
+
+			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": allocating memory (Run Time: " + to_string(duration) + "ms)", true);
+
+			int newMemLocation = GenerateRandomMemoryAddress ();
+
+			stringstream ss;
+			ss << hex << newMemLocation;
+			string s = ss.str();
+
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": memory allocated at 0x" + s, true);
+
+			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetHardDriveTime ()), true);
+			//cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
+
+		} else if (sentCommand.find ("block") != string::npos)
+		{
+			duration *= currentConfFile.GetMemoryTime (); //Convert from units to ms
+
+			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start memory blocking (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end memory blocking", true);
+
+			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetMonitorTime ()), true);
+			//cout << sentCommand << " - " << (duration * monitorDispTime) << endl;
+
+		} else
+		{
+			OutputToLog (string ("Error: could not find allocate or block in memory command \"") + sentCommand + "\"", true);
+
+			return false;
+
+		}
+
+		//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetMemoryTime ()), true);
 		//cout << sentCommand << " - " << (duration * memoryCycleTime) << endl;
 
 		return true;
@@ -1020,6 +1104,7 @@ bool OutputToLog (string sentOutput, bool createNewLine)
 
 }
 
+/* Replacec with pthread version above
 float WaitForMicroSeconds (unsigned int sentTime)
 {
 	chrono::steady_clock::time_point timer;
@@ -1039,9 +1124,53 @@ float WaitForMicroSeconds (unsigned int sentTime)
 	return CountToSeconds (durs.count ());
 
 }
+*/
+
+void* WaitForMicroSeconds (void* sentTime)
+{
+	long t = (long) sentTime;
+
+	chrono::steady_clock::time_point timer;
+
+	//cout << "Waiting for " << CountToSeconds (t) << " seconds..." << endl;
+
+	auto dur = thisClock.WaitForMicroSeconds (t).time_since_epoch (). count ();
+
+	//cout << "Done!" << endl;
+
+	timer = chrono::steady_clock::now ();
+
+	auto durs = chrono::duration_cast<chrono::microseconds>(timer-systemStart);
+
+	//cout << "dur count = " << CountToSeconds (durs.count ()) << endl;
+
+	stamp = CountToSeconds (durs.count ());
+
+	pthread_exit (0);
+
+}
 
 float CountToSeconds (unsigned int sentCount)
 {
 	return (float) sentCount / (float) 1000000;
+
+}
+
+//Just a function to reduce clutter in code since these lines would have to be anywhere that a timer thread is made
+float RunTimerThread (long sentTime)
+{
+	pthread_t tid;
+	pthread_attr_t attr;
+
+	pthread_create(&tid, NULL, WaitForMicroSeconds, (void *) sentTime);
+	pthread_join(tid, NULL);
+
+	return stamp;
+
+}
+
+int GenerateRandomMemoryAddress ()
+{
+	return (rand() % INT_MAX);
 
 }
