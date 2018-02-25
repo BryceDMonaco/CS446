@@ -14,7 +14,8 @@
 			Most functions contain cout calls which are commented out, these were used for debug purposes 
 			and are left as comments incase they are needed again as well as to show a bit of the debug process.
 
-	TODO:	Add ability to parse new config setting for system memory
+	TODO:	Solve mdf files not being read properly
+			Change command outputs to new format "GLOBAL_TIME - Process PROCESS_NUMBER: start/end JOB_TYPE action"
 
 */
 
@@ -24,7 +25,9 @@
 #include <string>
 #include <sstream> 	//Not actually used in latest version
 #include <vector>	//Not actually used in latest version
+#include <chrono>
 
+#include "Clock.cpp"
 #include "ConfigFile.cpp"
 
 #include <stdio.h>	//Used primarily in ParseCommand for sscanf functionality
@@ -36,6 +39,9 @@ string currentLGFPath; //Stores the path to the current log file so that it does
 
 ConfigFile currentConfFile; //Assuming ScanConfigFile () runs successfully, this contains all the information read in from the current config file
 vector<ConfigFile> allConfigFiles; //Not used, currently once a config file is done it just gets overwritten in the currentConfFile
+
+Clock thisClock;
+chrono::steady_clock::time_point systemStart;
 
 //The following are flag booleans to make sure that there are no extra/missing start or finish commands in the metadata
 bool currentlyRunningSystem = false;
@@ -49,6 +55,8 @@ string ScanNextLine (ifstream& sentStream);						//A generic IO function to scan
 string ScanNextLine (ifstream& sentStream, char delimChar);		//That same generic function but also with a delim character
 void OutputConfigFileData (bool toFile, bool toMonitor);		//Outputs the config file information to the relevant media in the required format
 bool OutputToLog (string sentOutput, bool createNewLine);		//Hands output to the log file AND/OR the monitor
+float WaitForMicroSeconds (unsigned int sentTime);
+float CountToSeconds (unsigned int sentCount);
 
 int main (int argc, char* argv[])
 {
@@ -84,6 +92,7 @@ int main (int argc, char* argv[])
 
 		    }
 
+		    /* The Configuration File Data header is no longer output in Sim02
 		    if (!OutputToLog ("Configuration File Data", true)) //OutputToLog returns false if output is incorrectly configured
 		    {
 		    	cout << "FATAL ERROR: There was an output error. Closing the simulation." << endl;
@@ -91,8 +100,26 @@ int main (int argc, char* argv[])
 		    	return 0;
 
 		    }
+		    */
 
-		    OutputConfigFileData (currentConfFile.ShouldLogToFile (), currentConfFile.ShouldLogToMonitor ());
+		    systemStart = chrono::steady_clock::now ();
+
+		    //Now the test output is the initial simulator start message
+		    //Note:	If there are multiple config files this will be output at roughly 0 for each one (systemStart gets reset every config file from the line above)
+		    //		If it is preferred that the time shown for Simulator program starting is based off of the start time of the original config then it can be moved out of the loop
+		    //Waits for 1 uSecond because sometimes 0 uS causes some strange issues
+		    if (!OutputToLog (string (to_string (WaitForMicroSeconds (1))) + " - Simulator program starting", true)) //OutputToLog returns false if output is incorrectly configured
+		    {
+		    	cout << "FATAL ERROR: There was an output error. Closing the simulation." << endl;
+
+		    	return 0;
+
+		    }
+
+		    
+
+		    //This doesn't get output in Sim02
+		    //OutputConfigFileData (currentConfFile.ShouldLogToFile (), currentConfFile.ShouldLogToMonitor ());
 
 		    RunMetaDataFile ();
 
@@ -133,9 +160,10 @@ bool RunMetaDataFile ()
 	//cout << endl << "Meta-Data Metrics" << endl;
 
 	//Check if the file is empty
-	if (mdfFile.eof ())
+	if (mdfFile.eof () || !mdfFile.is_open ())
 	{
 		OutputToLog ("Error: Empty Meta Data File", true);
+		cout << "File attempted to be opened \"" << currentConfFile.GetMDFPath () << "\"" << endl;
 		//cout << "Error: Empty Meta Data File" << endl;
 
 		mdfFile.close ();
@@ -145,12 +173,15 @@ bool RunMetaDataFile ()
 
 	currentLine = ScanNextLine (mdfFile);
 
-	//Check for start line
+	//Check for start line Start Program Meta-Data Code:
 	if (currentLine.find ("Start Program Meta-Data Code:") == string::npos) //True if not found
 	{
 		//First line does not contain start line
 		OutputToLog ("Error: No start program command", true);
+		OutputToLog (string ("Found: ") + currentLine + " in " + currentConfFile.GetMDFPath (), true);
 		//cout << "Error: No start program command" << endl;
+
+
 
 		mdfFile.close ();
 		return false;
@@ -474,6 +505,21 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 	} else
 	{
+		//Check for any extra spaces at the end of the mdf file name (for some reason this prevents the file from being opened)
+		char testChar;
+
+		do
+		{
+			testChar = metaDataFilePathTEMP [metaDataFilePathTEMP.length () - 1];
+
+			if (testChar == ' ')
+			{
+				metaDataFilePathTEMP.erase (metaDataFilePathTEMP.length () - 1);
+
+			}
+
+		} while (testChar == ' ');
+
 		//Config file was read successfully, now store all read values into the sent file
 		sentFile.SetVersionNumber (versionNumberTEMP);
 
@@ -943,5 +989,31 @@ bool OutputToLog (string sentOutput, bool createNewLine)
 		return false;
 
 	}
+
+}
+
+float WaitForMicroSeconds (unsigned int sentTime)
+{
+	chrono::steady_clock::time_point timer;
+
+	//cout << "Waiting for " << CountToSeconds (sentTime) << " seconds..." << endl;
+
+	auto dur = thisClock.WaitForMicroSeconds (sentTime).time_since_epoch (). count ();
+
+	//cout << "Done!" << endl;
+
+	timer = chrono::steady_clock::now ();
+
+	auto durs = chrono::duration_cast<chrono::microseconds>(timer-systemStart);
+
+	//cout << "dur count = " << CountToSeconds (durs.count ()) << endl;
+
+	return CountToSeconds (durs.count ());
+
+}
+
+float CountToSeconds (unsigned int sentCount)
+{
+	return (float) sentCount / (float) 1000000;
 
 }
