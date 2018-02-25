@@ -506,19 +506,27 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 	} else
 	{
 		//Check for any extra spaces at the end of the mdf file name (for some reason this prevents the file from being opened)
-		char testChar;
+		char testCharM;
+		char testCharL;
 
 		do
 		{
-			testChar = metaDataFilePathTEMP [metaDataFilePathTEMP.length () - 1];
+			testCharL = logFilePathTEMP [logFilePathTEMP () - 1];
+			testCharM = metaDataFilePathTEMP [metaDataFilePathTEMP.length () - 1];
 
-			if (testChar == ' ')
+			if (testCharM == ' ')
 			{
 				metaDataFilePathTEMP.erase (metaDataFilePathTEMP.length () - 1);
 
 			}
 
-		} while (testChar == ' ');
+			if (testCharL == ' ')
+			{
+				logFilePathTEMP.erase (logFilePathTEMP.length () - 1);
+
+			}
+
+		} while (testCharM == ' ' || testCharL == ' ');
 
 		//Config file was read successfully, now store all read values into the sent file
 		sentFile.SetVersionNumber (versionNumberTEMP);
