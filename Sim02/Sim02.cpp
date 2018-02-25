@@ -29,6 +29,7 @@
 
 #include "Clock.cpp"
 #include "ConfigFile.cpp"
+#include "ProcessControlBlock.cpp"
 
 #include <stdio.h>	//Used primarily in ParseCommand for sscanf functionality
 
@@ -156,7 +157,7 @@ bool RunMetaDataFile ()
 	mdfFile.open (currentConfFile.GetMDFPath ());
 	string currentLine;
 
-	OutputToLog ("\nMeta-Data Metrics", true);
+	//OutputToLog ("\nMeta-Data Metrics", true); //No longer used in Sim02
 	//cout << endl << "Meta-Data Metrics" << endl;
 
 	//Check if the file is empty
@@ -199,6 +200,11 @@ bool RunMetaDataFile ()
 
 		mdfFile.close ();
 		return false;
+
+	} else
+	{
+		OutputToLog (string (to_string (WaitForMicroSeconds (1))) + " - OS: preparing process 1", true);
+
 
 	}
 
@@ -511,7 +517,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 		do
 		{
-			testCharL = logFilePathTEMP [logFilePathTEMP () - 1];
+			testCharL = logFilePathTEMP [logFilePathTEMP.length () - 1];
 			testCharM = metaDataFilePathTEMP [metaDataFilePathTEMP.length () - 1];
 
 			if (testCharM == ' ')
