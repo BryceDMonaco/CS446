@@ -1,34 +1,54 @@
 #include <iostream>
 #include <chrono>
 #include "Clock.cpp"
+#include <pthread.h>
 
 Clock thisClock;
 chrono::steady_clock::time_point systemStart;
 
 using namespace std;
 
-void WaitForMicroSeconds (unsigned int sentTime);
+void* WaitForMicroSeconds (void* sentTime);
 float CountToSeconds (unsigned int sentCount);
+void* PrintValue (void* sentValue);
 
 int main ()
 {	
 	systemStart = chrono::steady_clock::now ();
 
-	WaitForMicroSeconds (1000000); //1 second
-	WaitForMicroSeconds (500000); //0.5 seconds
-	WaitForMicroSeconds (100000); //0.1 seconds
+	pthread_t tid;
+	pthread_attr_t attr;
+
+	pthread_create(&tid, NULL, PrintValue, (void *) 69);
+	pthread_join(tid, NULL);
+
+	pthread_create(&tid, NULL, WaitForMicroSeconds, (void *) 3000000);
+	pthread_join(tid, NULL);
+
 
 	return 0;
 
 }
 
-void WaitForMicroSeconds (unsigned int sentTime)
+void* PrintValue (void* sentValue)
 {
+	long a = (long) sentValue;
+
+	cout << "Found " << a << endl;
+
+	pthread_exit (0);
+
+}
+
+void* WaitForMicroSeconds (void* sentTime)
+{
+	long t = (long) sentTime;
+
 	chrono::steady_clock::time_point timer;
 
-	cout << "Waiting for " << CountToSeconds (sentTime) << " seconds..." << endl;
+	cout << "Waiting for " << CountToSeconds (t) << " seconds..." << endl;
 
-	auto dur = thisClock.WaitForMicroSeconds (sentTime).time_since_epoch (). count ();
+	auto dur = thisClock.WaitForMicroSeconds (t).time_since_epoch (). count ();
 
 	cout << "Done!" << endl;
 
@@ -37,6 +57,8 @@ void WaitForMicroSeconds (unsigned int sentTime)
 	auto durs = chrono::duration_cast<chrono::microseconds>(timer-systemStart);
 
 	cout << "dur count = " << CountToSeconds (durs.count ()) << endl;
+
+	pthread_exit (0);
 
 }
 

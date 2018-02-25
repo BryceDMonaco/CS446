@@ -26,6 +26,9 @@
 #include <sstream> 	//Not actually used in latest version
 #include <vector>	//Not actually used in latest version
 #include <chrono>
+#include <cstdlib> 	//Used to generated random int for PCB memory location
+#include <limits.h> //Used for INT_MAX for the random int
+#include <pthread.h>
 
 #include "Clock.cpp"
 #include "ConfigFile.cpp"
@@ -40,6 +43,9 @@ string currentLGFPath; //Stores the path to the current log file so that it does
 
 ConfigFile currentConfFile; //Assuming ScanConfigFile () runs successfully, this contains all the information read in from the current config file
 vector<ConfigFile> allConfigFiles; //Not used, currently once a config file is done it just gets overwritten in the currentConfFile
+
+ProcessControlBlock currentPCB;
+vector<ProcessControlBlock> allPCBs; //This won't get used in Sim02
 
 Clock thisClock;
 chrono::steady_clock::time_point systemStart;
@@ -205,6 +211,7 @@ bool RunMetaDataFile ()
 	{
 		OutputToLog (string (to_string (WaitForMicroSeconds (1))) + " - OS: preparing process 1", true);
 
+		currentPCB = ProcessControlBlock (1, -1); //Defaulted to memory location -1 since it hasn't been assigned yet in mdf
 
 	}
 
@@ -229,6 +236,10 @@ bool RunMetaDataFile ()
 			if (currentLine.find ("End Program Meta-Data Code.") != string::npos)
 			{
 				reachedEndOfFile = true;
+
+				OutputToLog (string (to_string (WaitForMicroSeconds (1))) + " - OS: removing process 1", true);
+
+				currentPCB.SetState (4); //Terminate
 
 				//cout << "Found EOF" << endl;
 
@@ -677,7 +688,10 @@ bool ParseCommand (string sentCommand)
 
 			}
 
-			OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetProcessorTime ()), true);
+			OutputToLog (string (to_string (WaitForMicroSeconds (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start processing action", true);
+			OutputToLog (string (to_string (WaitForMicroSeconds (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end processing action", true);
+
+			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetProcessorTime ()), true);
 			//cout << sentCommand << " - " << (duration * processorCycleTime) << endl;
 
 			return true;
