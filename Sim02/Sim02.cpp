@@ -224,7 +224,7 @@ bool RunMetaDataFile ()
 	} else
 	{
 		currentPCB = ProcessControlBlock (1, -1); //Defaulted to memory location -1 since it hasn't been assigned yet in mdf
-
+		currentPCB.SetState (1);
 		OutputToLog (string (to_string (RunTimerThread (1))) + " - OS: preparing process " + to_string (currentPCB.GetPID ()), true);
 
 	}
@@ -653,6 +653,8 @@ bool ParseCommand (string sentCommand)
 
 				OutputToLog (string (to_string (RunTimerThread (1))) + " - OS: starting process " + to_string (currentPCB.GetPID ()), true);
 
+				currentPCB.SetState (2);
+
 				return true;
 
 			}
@@ -769,8 +771,13 @@ bool ParseCommand (string sentCommand)
 		{
 			duration *= currentConfFile.GetHardDriveTime (); //Convert from units to ms
 
+			currentPCB.SetState (3);
+
 			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start hard drive input (Run Time: " + to_string(duration) + "ms)", true);
 			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end hard drive input", true);
+
+			currentPCB.SetState (1);
+			currentPCB.SetState (2);
 
 			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetHardDriveTime ()), true);
 			//cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
@@ -779,8 +786,13 @@ bool ParseCommand (string sentCommand)
 		{
 			duration *= currentConfFile.GetKeyboardTime (); //Convert from units to ms
 
+			currentPCB.SetState (3);
+
 			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start keyboard input (Run Time: " + to_string(duration) + "ms)", true);
 			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end keyboard input", true);
+
+			currentPCB.SetState (1);
+			currentPCB.SetState (2);
 
 			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetKeyboardTime ()), true);
 			//cout << sentCommand << " - " << (duration * keyboardCycleTime) << endl;
@@ -789,8 +801,13 @@ bool ParseCommand (string sentCommand)
 		{
 			duration *= currentConfFile.GetScannerTime (); //Convert from units to ms
 
+			currentPCB.SetState (3);
+
 			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start scanner input (Run Time: " + to_string(duration) + "ms)", true);
 			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end scanner input", true);
+
+			currentPCB.SetState (1);
+			currentPCB.SetState (2);
 
 			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetScannerTime ()), true);
 			//cout << sentCommand << " - " << (duration * scannerCycleTime) << endl;
@@ -858,8 +875,13 @@ bool ParseCommand (string sentCommand)
 		{
 			duration *= currentConfFile.GetHardDriveTime (); //Convert from units to ms
 
+			currentPCB.SetState (3);
+
 			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start hard drive output (Run Time: " + to_string(duration) + "ms)", true);
 			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end hard drive output", true);
+
+			currentPCB.SetState (1);
+			currentPCB.SetState (2);
 
 			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetHardDriveTime ()), true);
 			//cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
@@ -868,8 +890,13 @@ bool ParseCommand (string sentCommand)
 		{
 			duration *= currentConfFile.GetMonitorTime (); //Convert from units to ms
 
+			currentPCB.SetState (3);
+
 			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start monitor output (Run Time: " + to_string(duration) + "ms)", true);
 			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end monitor output", true);
+
+			currentPCB.SetState (1);
+			currentPCB.SetState (2);
 
 			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetMonitorTime ()), true);
 			//cout << sentCommand << " - " << (duration * monitorDispTime) << endl;
@@ -878,8 +905,13 @@ bool ParseCommand (string sentCommand)
 		{
 			duration *= currentConfFile.GetProjectorTime (); //Convert from units to ms
 
+			currentPCB.SetState (3);
+
 			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start projector output (Run Time: " + to_string(duration) + "ms)", true);
 			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end projector output", true);
+
+			currentPCB.SetState (1);
+			currentPCB.SetState (2);
 
 			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetProjectorTime ()), true);
 			//cout << sentCommand << " - " << (duration * projectorCycleTime) << endl;
