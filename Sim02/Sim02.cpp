@@ -14,8 +14,7 @@
 			Most functions contain cout calls which are commented out, these were used for debug purposes 
 			and are left as comments incase they are needed again as well as to show a bit of the debug process.
 
-	TODO:	Solve mdf files not being read properly
-			Change command outputs to new format "GLOBAL_TIME - Process PROCESS_NUMBER: start/end JOB_TYPE action"
+	TODO:	
 
 */
 
@@ -69,7 +68,7 @@ bool OutputToLog (string sentOutput, bool createNewLine);		//Hands output to the
 void* WaitForMicroSeconds (void* sentTime);
 float CountToSeconds (unsigned int sentCount);
 float RunTimerThread (long sentTime);							//Used to reduce duplicate code lines
-int GenerateRandomMemoryAddress ();
+unsigned int GenerateRandomMemoryAddress ();
 
 int main (int argc, char* argv[])
 {
@@ -1201,8 +1200,8 @@ float RunTimerThread (long sentTime)
 
 }
 
-int GenerateRandomMemoryAddress ()
+unsigned int GenerateRandomMemoryAddress ()
 {
-	return (rand() % INT_MAX);
+	return (rand() % UINT_MAX);
 
 }

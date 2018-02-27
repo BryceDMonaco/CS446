@@ -1,34 +1,34 @@
-0.000035 - Simulator program starting
-0.000293 - OS: preparing process 1
-0.000426 - OS: starting process 1
-0.000523 - Process 1: start processing action (Run Time: 110ms)
-0.110604 - Process 1: end processing action
-0.110832 - Process 1: allocating memory (Run Time: 60ms)
-0.170985 - Process 1: memory allocated at 0x4e82f63a
-0.171250 - Process 1: start monitor output (Run Time: 140ms)
-0.311385 - Process 1: end monitor output
-0.311694 - Process 1: start hard drive input (Run Time: 120ms)
-0.431826 - Process 1: end hard drive input
-0.432057 - Process 1: start projector output (Run Time: 200ms)
-0.632177 - Process 1: end projector output
-0.632450 - Process 1: start processing action (Run Time: 60ms)
-0.692555 - Process 1: end processing action
-0.692781 - Process 1: start projector output (Run Time: 40ms)
-0.732904 - Process 1: end projector output
-0.733166 - Process 1: start memory blocking (Run Time: 180ms)
-0.913289 - Process 1: end memory blocking
-0.913568 - Process 1: start keyboard input (Run Time: 850ms)
-1.763692 - Process 1: end keyboard input
-1.764140 - Process 1: start memory blocking (Run Time: 120ms)
-1.884297 - Process 1: end memory blocking
-1.884700 - Process 1: start processing action (Run Time: 50ms)
-1.934853 - Process 1: end processing action
-1.935051 - Process 1: start processing action (Run Time: 50ms)
-1.985151 - Process 1: end processing action
-1.985350 - Process 1: start hard drive output (Run Time: 90ms)
-2.075451 - Process 1: end hard drive output
-2.075652 - Process 1: start processing action (Run Time: 180ms)
-2.255751 - Process 1: end processing action
-2.256016 - OS: removing process 1
+0.000053 - Simulator program starting
+0.000932 - OS: preparing process 1
+0.001113 - OS: starting process 1
+0.001214 - Process 1: start processing action (Run Time: 110ms)
+0.111296 - Process 1: end processing action
+0.111725 - Process 1: allocating memory (Run Time: 60ms)
+0.171896 - Process 1: memory allocated at 0x17d52061
+0.172088 - Process 1: start monitor output (Run Time: 140ms)
+0.312167 - Process 1: end monitor output
+0.312401 - Process 1: start hard drive input (Run Time: 120ms)
+0.432525 - Process 1: end hard drive input
+0.432724 - Process 1: start projector output (Run Time: 200ms)
+0.632802 - Process 1: end projector output
+0.633002 - Process 1: start processing action (Run Time: 60ms)
+0.693077 - Process 1: end processing action
+0.693258 - Process 1: start projector output (Run Time: 40ms)
+0.733337 - Process 1: end projector output
+0.733572 - Process 1: start memory blocking (Run Time: 180ms)
+0.913677 - Process 1: end memory blocking
+0.913952 - Process 1: start keyboard input (Run Time: 850ms)
+1.764095 - Process 1: end keyboard input
+1.764298 - Process 1: start memory blocking (Run Time: 120ms)
+1.884376 - Process 1: end memory blocking
+1.884561 - Process 1: start processing action (Run Time: 50ms)
+1.934639 - Process 1: end processing action
+1.934878 - Process 1: start processing action (Run Time: 50ms)
+1.984979 - Process 1: end processing action
+1.985179 - Process 1: start hard drive output (Run Time: 90ms)
+2.075257 - Process 1: end hard drive output
+2.075457 - Process 1: start processing action (Run Time: 180ms)
+2.255536 - Process 1: end processing action
+2.255715 - OS: removing process 1
 (End of config file: ExConfig.conf)
-2.256213 - Simulator program ending
+2.255843 - Simulator program ending
