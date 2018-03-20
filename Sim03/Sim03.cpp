@@ -15,9 +15,7 @@
 			Most functions contain cout calls which are commented out, these were used for debug purposes 
 			and are left as comments incase they are needed again as well as to show a bit of the debug process.
 
-	TODO:	-Memory needs to not be randomly generated addresses
-			-Read in new config values (also version number)
-			-Add operation Mutexes
+	TODO:	-Add operation Mutexes
 
 */
 
@@ -29,6 +27,7 @@
 #include <vector>	//Not actually used in latest version
 #include <chrono>	//Used for all of the timers
 #include <cstdlib> 	//Used to generated random int for PCB memory location ()
+#include <iomanip>	//Used with outputting the hex address to the correct size
 #include <limits.h> //Used for INT_MAX for the random int
 #include <pthread.h>
 #include <time.h>	//NOT used for timers (see chrono), instead just used to seed random generator
@@ -55,6 +54,8 @@ chrono::steady_clock::time_point systemStart;
 
 float stamp; //Used because I can't figure out how to get a pthread to return a float value
 unsigned int memoryPosition = 0;
+int onProjector = 0;
+int onHardDrive = 0;
 
 //The following are flag booleans to make sure that there are no extra/missing start or finish commands in the metadata
 bool currentlyRunningSystem = false;
@@ -73,7 +74,9 @@ void* WaitForMicroSeconds (void* sentTime);
 float CountToSeconds (unsigned int sentCount);
 float RunTimerThread (long sentTime);							//Used to reduce duplicate code lines
 //unsigned int GenerateRandomMemoryAddress ();					//Only used in Sim02, deprecated as of Sim03
-unisnged int GetMemoryAddress (unsigned int sentSize);
+unsigned int GetMemoryAddress (unsigned int sentSize);
+int GetProjectorNumber ();
+int GetHardDriveNumber ();
 
 int main (int argc, char* argv[])
 {
@@ -84,6 +87,7 @@ int main (int argc, char* argv[])
         cout << "Usage: " << argv[0] << " NAME_OF_CONFIG_FILE_WITH_EXTENSION (Multiple config files allowed with spaces between names)" << endl;
 
         return 0;
+
     } else
     {
     	srand (time(NULL)); //Just quickly seed the random generator, only use of a function from time.h
@@ -312,6 +316,9 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 	int memoryCycleTimeTEMP;		//msec
 	int projectorCycleTimeTEMP;		//msec
 	int systemMemoryTEMP;			//KB
+	int projectorQuantityTEMP;
+	int harddriveQuantityTEMP;
+	int memoryBlockSizeTEMP;		//KB
 
 	bool shouldLogToFileTEMP = false;
 	bool shouldLogToMonitorTEMP = false;
@@ -340,8 +347,8 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 	}
 
-	//A standard config file should contain exactly 14 lines, first and last are start and end, 12 values
-	for (int i = 0; i < 12; i++)
+	//A standard config file should contain exactly 17 lines, first and last are start and end, 15 values
+	for (int i = 0; i < 15; i++)
 	{
 		if (cfgFile.eof ())
 		{
@@ -513,6 +520,48 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 				//break;
 
+			} else if (currentLine.find ("Projector quantity") != string::npos)
+			{
+				sscanf(currentLine.c_str(), "Projector quantity:%d", &projectorQuantityTEMP);    			
+
+				//break;
+
+			} else if (currentLine.find ("drive quantity") != string::npos)
+			{
+				sscanf(currentLine.c_str(), "Hard drive quantity:%d", &harddriveQuantityTEMP);    			
+
+				//break;
+
+			} else if (currentLine.find ("Memory block size") != string::npos)
+			{
+
+				if (currentLine.find ("kbytes") != string::npos)
+				{
+					sscanf(currentLine.c_str(), "Memory block size {kbytes}:%d", &memoryBlockSizeTEMP);
+
+				} else if (currentLine.find ("Mbytes") != string::npos)
+				{
+					int temp;
+					sscanf(currentLine.c_str(), "Memory block size {Mbytes}:%d", &temp);
+
+					memoryBlockSizeTEMP = temp * 1000;
+
+				} else if (currentLine.find ("Gbytes") != string::npos)
+				{
+					int temp;
+					sscanf(currentLine.c_str(), "Memory block size {Gbytes}:%d", &temp);
+
+					memoryBlockSizeTEMP = temp * 1000000;
+
+				} else
+				{
+					//Can't find a valid unit, just assume KB
+					sscanf(currentLine.c_str(), "Memory block size {%*s}:%d", &memoryBlockSizeTEMP);
+
+				}
+
+				//break;
+
 			} else
 			{
 				cout << "Error: Could not find valid config data, perhaps a field is missing?" << endl;
@@ -576,6 +625,9 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 		sentFile.SetMemoryTime (memoryCycleTimeTEMP);
 		sentFile.SetProjectorTime (projectorCycleTimeTEMP);
 		sentFile.SetSystemMemoryKB (systemMemoryTEMP);
+		sentFile.SetProjectorQuantity (projectorQuantityTEMP);
+		sentFile.SetHardDriveQuantity (harddriveQuantityTEMP);
+		sentFile.SetMemoryBlockSize (memoryBlockSizeTEMP);
 
 		sentFile.SetLogPreferences (shouldLogToFileTEMP, shouldLogToMonitorTEMP);
 
@@ -880,7 +932,7 @@ bool ParseCommand (string sentCommand)
 
 			currentPCB.SetState (3);
 
-			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start hard drive output (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start hard drive output on HDD " + to_string (GetHardDriveNumber ()) + " (Run Time: " + to_string(duration) + "ms)", true);
 			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end hard drive output", true);
 
 			currentPCB.SetState (1);
@@ -910,7 +962,7 @@ bool ParseCommand (string sentCommand)
 
 			currentPCB.SetState (3);
 
-			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start projector output (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start projector output on PROJ " + to_string (GetProjectorNumber ()) + " (Run Time: " + to_string(duration) + "ms)", true);
 			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end projector output", true);
 
 			currentPCB.SetState (1);
@@ -951,10 +1003,10 @@ bool ParseCommand (string sentCommand)
 
 			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": allocating memory (Run Time: " + to_string(duration) + "ms)", true);
 
-			int newMemLocation = GenerateRandomMemoryAddress ();
+			int newMemLocation = GetMemoryAddress (currentConfFile.GetMemoryBlockSize ());
 
 			stringstream ss;
-			ss << hex << newMemLocation;
+			ss << setfill('0') << setw(8) << hex << newMemLocation;
 			string s = ss.str();
 
 			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": memory allocated at 0x" + s, true);
@@ -1204,12 +1256,33 @@ float RunTimerThread (long sentTime)
 
 }
 
-unisnged int GetMemoryAddress (unsigned int sentSize)
+//sentSize should always be the current config's memory block size
+unsigned int GetMemoryAddress (unsigned int sentSize)
 {
 	unsigned int temp = memoryPosition;
 
 	memoryPosition += sentSize; //Move the starting position to it's new location after "allocatiion"
 
 	return temp; //Return the starting position
+
+}
+
+int GetProjectorNumber ()
+{
+	int temp = onProjector;
+
+	onProjector = (onProjector + 1) % currentConfFile.GetProjectorQuantity ();
+
+	return temp;
+
+}
+
+int GetHardDriveNumber ()
+{
+	int temp = onHardDrive;
+
+	onHardDrive = (onHardDrive + 1) % currentConfFile.GetHardDriveQuantity ();
+
+	return temp;
 
 }

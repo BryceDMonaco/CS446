@@ -1,7 +1,5 @@
 /*
-	This is a modified version of ConfigFile.cpp from Sim01, it contains System Memory
-
-	TODO: Write System memory functions, add system memory to operator=
+	Updated to Sim03
 
 */
 
@@ -30,6 +28,10 @@ class ConfigFile
 		void SetSystemMemoryKB (int sentValue);
 		//void SetSystemMemoryMB (int sentValue); //Needs to convert to KB (commented out because the scan function converts it)
 		//void SetSystemMemoryGB (int sentValue); //Needs to convert to KB
+		void SetProjectorQuantity (int sentValue);
+		void SetHardDriveQuantity (int sentValue);
+		void SetMemoryBlockSize (int sentValue);
+
 
 		void SetLogPreferences (bool toFile, bool toMonitor);
 
@@ -45,6 +47,9 @@ class ConfigFile
 		int GetMemoryTime () const;
 		int GetProjectorTime () const;
 		int GetSystemMemory () const; //Returned in KB
+		int GetProjectorQuantity () const;
+		int GetHardDriveQuantity () const;
+		int GetMemoryBlockSize () const;
 
 		bool ShouldLogToFile () const;
 		bool ShouldLogToMonitor () const;
@@ -69,6 +74,11 @@ class ConfigFile
 		int memoryCycleTime;		//msec
 		int projectorCycleTime;		//msec
 		int systemMemory;			//KB
+
+		int projectorQuantity;
+		int hardDriveQuantity;
+
+		int memoryBlockSize;		//KB
 
 		bool shouldLogToFile;
 		bool shouldLogToMonitor;
@@ -189,6 +199,30 @@ void ConfigFile::SetSystemMemoryKB (int sentValue)
 
 }
 
+void ConfigFile::SetProjectorQuantity (int sentValue)
+{
+	projectorQuantity = sentValue;
+
+	return;
+
+}
+
+void ConfigFile::SetHardDriveQuantity (int sentValue)
+{
+	hardDriveQuantity = sentValue;
+
+	return;
+
+}
+
+void ConfigFile::SetMemoryBlockSize (int sentValue)
+{
+	memoryBlockSize = sentValue;
+
+	return;
+
+}
+
 /////////////////////////////////////////////////////
 /// Access Functions                              ///
 /////////////////////////////////////////////////////
@@ -268,6 +302,24 @@ bool ConfigFile::ShouldLogToMonitor () const
 int ConfigFile::GetSystemMemory () const //Returned in KB
 {
 	return systemMemory;
+
+}
+
+int ConfigFile::GetProjectorQuantity () const
+{
+	return projectorQuantity;
+
+}
+
+int ConfigFile::GetHardDriveQuantity () const
+{
+	return hardDriveQuantity;
+
+}
+
+int ConfigFile::GetMemoryBlockSize () const
+{
+	return memoryBlockSize;
 
 }
 
