@@ -15,7 +15,7 @@
 			Most functions contain cout calls which are commented out, these were used for debug purposes 
 			and are left as comments incase they are needed again as well as to show a bit of the debug process.
 
-	TODO:	-Add operation Mutexes
+	TODO:	
 
 */
 
@@ -40,6 +40,12 @@
 
 using namespace std;
 
+struct thread_args
+ {
+    char deviceType; //'H', 'K', 'P', 'M', 'S', 'X'
+    long count;
+};
+
 ofstream logFile; //Gets opened and closed whenever a new config file is scanned successfully
 string currentLGFPath; //Stores the path to the current log file so that it doesn't need to be passed as an argument to multiple functions
 
@@ -51,6 +57,14 @@ vector<ProcessControlBlock> allPCBs; //This won't get used in Sim02
 
 Clock thisClock;
 chrono::steady_clock::time_point systemStart;
+
+//Locks for each IO device
+pthread_mutex_t lock;			//Lock used by the timer thread if not an IO device
+pthread_mutex_t lockHDD;		//Lock used by the hard drive thread 	(IO)
+pthread_mutex_t lockProj;		//Lock used by the projector thread 	(O)
+pthread_mutex_t lockMonitor;	//Lock used by the monitor thread 		(O)
+pthread_mutex_t lockScanner;	//Lock used by the scanner thread 		(I)
+pthread_mutex_t lockKeyboard;	//Lock used by the keyboard thread 		(I)
 
 float stamp; //Used because I can't figure out how to get a pthread to return a float value
 unsigned int memoryPosition = 0;
@@ -72,11 +86,13 @@ bool OutputToLog (string sentOutput, bool createNewLine);		//Hands output to the
 //float WaitForMicroSeconds (unsigned int sentTime);			//Replaced with pthread version below
 void* WaitForMicroSeconds (void* sentTime);
 float CountToSeconds (unsigned int sentCount);
-float RunTimerThread (long sentTime);							//Used to reduce duplicate code lines
+float RunTimerThread (long sentTime, char sentDevice);							//Used to reduce duplicate code lines
 //unsigned int GenerateRandomMemoryAddress ();					//Only used in Sim02, deprecated as of Sim03
 unsigned int GetMemoryAddress (unsigned int sentSize);
-int GetProjectorNumber ();
-int GetHardDriveNumber ();
+void* GetProjectorNumber (void* sentArg);
+void* GetHardDriveNumber (void* sentArg);
+int RunHardDriveThread ();
+int RunProjectorThread ();
 
 int main (int argc, char* argv[])
 {
@@ -132,7 +148,7 @@ int main (int argc, char* argv[])
 		    //Waits for 1 uSecond because sometimes 0 uS causes some strange issues
 
 
-		    if (!OutputToLog (string (to_string (RunTimerThread (1))) + " - Simulator program starting", true)) //OutputToLog returns false if output is incorrectly configured
+		    if (!OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - Simulator program starting", true)) //OutputToLog returns false if output is incorrectly configured
 		    {
 		    	cout << "FATAL ERROR: There was an output error. Closing the simulation." << endl;
 
@@ -155,7 +171,7 @@ int main (int argc, char* argv[])
 
 		    } else //Last config file finished
 		    {
-		    	OutputToLog (string (to_string (RunTimerThread (1))) + " - Simulator program ending", true);
+		    	OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - Simulator program ending", true);
 
 		    }
 
@@ -232,7 +248,7 @@ bool RunMetaDataFile ()
 	{
 		currentPCB = ProcessControlBlock (1, -1); //Defaulted to memory location -1 since it hasn't been assigned yet in mdf
 		currentPCB.SetState (1);
-		OutputToLog (string (to_string (RunTimerThread (1))) + " - OS: preparing process " + to_string (currentPCB.GetPID ()), true);
+		OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - OS: preparing process " + to_string (currentPCB.GetPID ()), true);
 
 	}
 
@@ -258,7 +274,7 @@ bool RunMetaDataFile ()
 			{
 				reachedEndOfFile = true;
 
-				OutputToLog (string (to_string (RunTimerThread (1))) + " - OS: removing process " + to_string (currentPCB.GetPID ()), true);
+				OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - OS: removing process " + to_string (currentPCB.GetPID ()), true);
 
 				currentPCB.SetState (4); //Terminate
 
@@ -381,7 +397,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 				//break;
 
-			} else if (currentLine.find ("Monitor d") != string::npos) //Added "d" because it was conflicting with Log to Monitor
+			} else if (currentLine.find ("Monitor display time") != string::npos) //Added "d" because it was conflicting with Log to Monitor
 			{
 
     			sscanf(currentLine.c_str(), "Monitor display time {msec}:%d", &monitorDispTimeTEMP);
@@ -390,7 +406,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 				//break;
 
-			} else if (currentLine.find ("Processor") != string::npos)
+			} else if (currentLine.find ("Processor cycle time") != string::npos)
 			{
 
     			sscanf(currentLine.c_str(), "Processor cycle time {msec}:%d", &processorCycleTimeTEMP);
@@ -399,7 +415,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 				//break;
 
-			} else if (currentLine.find ("Scanner") != string::npos)
+			} else if (currentLine.find ("Scanner cycle time") != string::npos)
 			{
 
     			sscanf(currentLine.c_str(), "Scanner cycle time {msec}:%d", &scannerCycleTimeTEMP);
@@ -408,7 +424,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 				//break;
 
-			} else if (currentLine.find ("Hard") != string::npos)
+			} else if (currentLine.find ("Hard drive cycle") != string::npos)
 			{
 
     			sscanf(currentLine.c_str(), "Hard drive cycle time {msec}:%d", &hardDriveCycleTimeTEMP);
@@ -417,7 +433,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 				//break;
 
-			} else if (currentLine.find ("Keyboard") != string::npos)
+			} else if (currentLine.find ("Keyboard cycle time") != string::npos)
 			{
 
     			sscanf(currentLine.c_str(), "Keyboard cycle time {msec}:%d", &keyboardCycleTimeTEMP);
@@ -426,7 +442,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 				//break;
 
-			} else if (currentLine.find ("Memory c") != string::npos) //Search for "Memory c" to find Memory cycle time
+			} else if (currentLine.find ("Memory cycle time") != string::npos) //Search for "Memory c" to find Memory cycle time
 			{
 
     			sscanf(currentLine.c_str(), "Memory cycle time {msec}:%d", &memoryCycleTimeTEMP);
@@ -435,7 +451,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 				//break;
 
-			} else if (currentLine.find ("Projector") != string::npos)
+			} else if (currentLine.find ("Projector cycle time") != string::npos)
 			{
 
 				//cout << "FOUND PROJECTOR LINE: " << currentLine << endl;
@@ -524,11 +540,15 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 			{
 				sscanf(currentLine.c_str(), "Projector quantity:%d", &projectorQuantityTEMP);    			
 
+				cout << "Found pq " << projectorQuantityTEMP << endl;
+
 				//break;
 
 			} else if (currentLine.find ("drive quantity") != string::npos)
 			{
 				sscanf(currentLine.c_str(), "Hard drive quantity:%d", &harddriveQuantityTEMP);    			
+
+				cout << "Found HDDq " << harddriveQuantityTEMP << endl;
 
 				//break;
 
@@ -706,7 +726,7 @@ bool ParseCommand (string sentCommand)
 			{
 				currentlyRunningApplication = true;
 
-				OutputToLog (string (to_string (RunTimerThread (1))) + " - OS: starting process " + to_string (currentPCB.GetPID ()), true);
+				OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - OS: starting process " + to_string (currentPCB.GetPID ()), true);
 
 				currentPCB.SetState (2);
 
@@ -763,8 +783,8 @@ bool ParseCommand (string sentCommand)
 
 			duration *= currentConfFile.GetProcessorTime (); //Convert from units to ms
 
-			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start processing action (Run Time: " + to_string(duration) + "ms)", true);
-			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end processing action", true);
+			OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start processing action (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end processing action", true);
 
 			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetProcessorTime ()), true);
 			//cout << sentCommand << " - " << (duration * processorCycleTime) << endl;
@@ -828,8 +848,8 @@ bool ParseCommand (string sentCommand)
 
 			currentPCB.SetState (3);
 
-			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start hard drive input (Run Time: " + to_string(duration) + "ms)", true);
-			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end hard drive input", true);
+			OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start hard drive input on HDD " + to_string (RunHardDriveThread ()) + "(Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000, 'H'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end hard drive input", true);
 
 			currentPCB.SetState (1);
 			currentPCB.SetState (2);
@@ -843,8 +863,8 @@ bool ParseCommand (string sentCommand)
 
 			currentPCB.SetState (3);
 
-			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start keyboard input (Run Time: " + to_string(duration) + "ms)", true);
-			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end keyboard input", true);
+			OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start keyboard input (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000, 'K'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end keyboard input", true);
 
 			currentPCB.SetState (1);
 			currentPCB.SetState (2);
@@ -858,8 +878,8 @@ bool ParseCommand (string sentCommand)
 
 			currentPCB.SetState (3);
 
-			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start scanner input (Run Time: " + to_string(duration) + "ms)", true);
-			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end scanner input", true);
+			OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start scanner input (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000, 'S'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end scanner input", true);
 
 			currentPCB.SetState (1);
 			currentPCB.SetState (2);
@@ -932,8 +952,8 @@ bool ParseCommand (string sentCommand)
 
 			currentPCB.SetState (3);
 
-			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start hard drive output on HDD " + to_string (GetHardDriveNumber ()) + " (Run Time: " + to_string(duration) + "ms)", true);
-			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end hard drive output", true);
+			OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start hard drive output on HDD " + to_string (RunHardDriveThread ()) + " (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000, 'H'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end hard drive output", true);
 
 			currentPCB.SetState (1);
 			currentPCB.SetState (2);
@@ -947,8 +967,8 @@ bool ParseCommand (string sentCommand)
 
 			currentPCB.SetState (3);
 
-			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start monitor output (Run Time: " + to_string(duration) + "ms)", true);
-			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end monitor output", true);
+			OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start monitor output (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000, 'M'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end monitor output", true);
 
 			currentPCB.SetState (1);
 			currentPCB.SetState (2);
@@ -962,8 +982,8 @@ bool ParseCommand (string sentCommand)
 
 			currentPCB.SetState (3);
 
-			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start projector output on PROJ " + to_string (GetProjectorNumber ()) + " (Run Time: " + to_string(duration) + "ms)", true);
-			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end projector output", true);
+			OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start projector output on PROJ " + to_string (RunProjectorThread ()) + " (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000, 'P'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end projector output", true);
 
 			currentPCB.SetState (1);
 			currentPCB.SetState (2);
@@ -1001,7 +1021,7 @@ bool ParseCommand (string sentCommand)
 		{
 			duration *= currentConfFile.GetMemoryTime (); //Convert from units to ms
 
-			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": allocating memory (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": allocating memory (Run Time: " + to_string(duration) + "ms)", true);
 
 			int newMemLocation = GetMemoryAddress (currentConfFile.GetMemoryBlockSize ());
 
@@ -1009,7 +1029,7 @@ bool ParseCommand (string sentCommand)
 			ss << setfill('0') << setw(8) << hex << newMemLocation;
 			string s = ss.str();
 
-			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": memory allocated at 0x" + s, true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": memory allocated at 0x" + s, true);
 
 			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetHardDriveTime ()), true);
 			//cout << sentCommand << " - " << (duration * hardDriveCycleTime) << endl;
@@ -1018,8 +1038,8 @@ bool ParseCommand (string sentCommand)
 		{
 			duration *= currentConfFile.GetMemoryTime (); //Convert from units to ms
 
-			OutputToLog (string (to_string (RunTimerThread (1))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start memory blocking (Run Time: " + to_string(duration) + "ms)", true);
-			OutputToLog (string (to_string (RunTimerThread (duration * 1000))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end memory blocking", true);
+			OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": start memory blocking (Run Time: " + to_string(duration) + "ms)", true);
+			OutputToLog (string (to_string (RunTimerThread (duration * 1000, 'X'))) + " - Process " + to_string (currentPCB.GetPID ()) + ": end memory blocking", true);
 
 			//OutputToLog (string (sentCommand) + " - " + to_string (duration * currentConfFile.GetMonitorTime ()), true);
 			//cout << sentCommand << " - " << (duration * monitorDispTime) << endl;
@@ -1213,8 +1233,43 @@ float WaitForMicroSeconds (unsigned int sentTime)
 }
 */
 
-void* WaitForMicroSeconds (void* sentTime)
+void* WaitForMicroSeconds (void* sentStruct)
 {
+	thread_args* sentArgs = (thread_args*) sentStruct;
+
+	long sentTime = (long) (*sentArgs).count;
+	char sentDevice = (char) (*sentArgs).deviceType;
+
+	//pthread_mutex_lock(&lock);
+
+	if (sentDevice == 'H')
+	{
+		//pthread_mutex_lock(&lock);
+		//Handled already by lockHDD
+
+	} else if (sentDevice == 'P')
+	{
+		//pthread_mutex_lock(&lock);
+		//Handled already by lockProj
+
+	} else if (sentDevice == 'M')
+	{
+		pthread_mutex_lock(&lockMonitor);
+
+	} else if (sentDevice == 'S')
+	{
+		pthread_mutex_lock(&lockScanner);
+
+	} else if (sentDevice == 'K')
+	{
+		pthread_mutex_lock(&lockKeyboard);
+
+	} else
+	{
+		pthread_mutex_lock(&lock);
+
+	}
+
 	long t = (long) sentTime;
 
 	chrono::steady_clock::time_point timer;
@@ -1233,6 +1288,36 @@ void* WaitForMicroSeconds (void* sentTime)
 
 	stamp = CountToSeconds (durs.count ());
 
+	//pthread_mutex_unlock(&lock);
+
+	if (sentDevice == 'H')
+	{
+		//pthread_mutex_unlock(&lock);
+		//Handled already by lockHDD
+
+	} else if (sentDevice == 'P')
+	{
+		//pthread_mutex_unlock(&lock);
+		//Handled already by lockProj
+
+	} else if (sentDevice == 'M')
+	{
+		pthread_mutex_unlock(&lockMonitor);
+
+	} else if (sentDevice == 'S')
+	{
+		pthread_mutex_unlock(&lockScanner);
+
+	} else if (sentDevice == 'K')
+	{
+		pthread_mutex_unlock(&lockKeyboard);
+
+	} else
+	{
+		pthread_mutex_unlock(&lock);
+
+	}
+
 	pthread_exit (0);
 
 }
@@ -1244,12 +1329,16 @@ float CountToSeconds (unsigned int sentCount)
 }
 
 //Just a function to reduce clutter in code since these lines would have to be anywhere that a timer thread is made
-float RunTimerThread (long sentTime)
+float RunTimerThread (long sentTime, char sentDevice)
 {
 	pthread_t tid;
 	pthread_attr_t attr;
 
-	pthread_create(&tid, NULL, WaitForMicroSeconds, (void *) sentTime);
+	thread_args argsToSend;
+	argsToSend.count = sentTime;
+	argsToSend.deviceType = sentDevice;
+
+	pthread_create(&tid, NULL, WaitForMicroSeconds, (void *) &argsToSend);
 	pthread_join(tid, NULL);
 
 	return stamp;
@@ -1267,22 +1356,60 @@ unsigned int GetMemoryAddress (unsigned int sentSize)
 
 }
 
-int GetProjectorNumber ()
+void* GetProjectorNumber (void* sentArg)
 {
-	int temp = onProjector;
+	pthread_mutex_lock(&lockProj);
+
+	long temp = onProjector;
 
 	onProjector = (onProjector + 1) % currentConfFile.GetProjectorQuantity ();
 
-	return temp;
+	pthread_mutex_unlock(&lockProj);
+
+	return (void*)temp;
 
 }
 
-int GetHardDriveNumber ()
+void* GetHardDriveNumber (void * sentArg) //sentArg is never used, should just always be null
 {
-	int temp = onHardDrive;
+	pthread_mutex_lock(&lockHDD);
+
+	long temp = onHardDrive;
 
 	onHardDrive = (onHardDrive + 1) % currentConfFile.GetHardDriveQuantity ();
 
-	return temp;
+	pthread_mutex_unlock(&lockHDD);
+
+	return (void*)temp;
+
+}
+
+int RunHardDriveThread ()
+{
+	pthread_t tid;
+	pthread_attr_t attr;
+	void* retVal;	//This is the hard drive number 
+
+	pthread_create(&tid, NULL, GetHardDriveNumber, (void *) NULL);
+	pthread_join(tid, &retVal);
+
+	int number = (long) retVal;
+
+	return number;
+
+}
+
+int RunProjectorThread ()
+{
+	pthread_t tid;
+	pthread_attr_t attr;
+	void* retVal;	//This is the projector number 
+
+	pthread_create(&tid, NULL, GetProjectorNumber, (void *) NULL);
+	pthread_join(tid, &retVal);
+
+	int number = (long) retVal;
+
+	return number;
 
 }
