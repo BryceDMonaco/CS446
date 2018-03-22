@@ -1349,11 +1349,24 @@ float RunTimerThread (long sentTime, char sentDevice)
 unsigned int GetMemoryAddress (unsigned int sentSize)
 {
 	unsigned int temp = memoryPosition;
+	int sysMemory = currentConfFile.GetSystemMemory ();
 
-	memoryPosition += sentSize; //Move the starting position to it's new location after "allocatiion"
+	//cout << "Adding " << sentSize << "kb to memory, current MP is " << memoryPosition << ", new is " << memoryPosition + sentSize << endl;
+
+	if ((memoryPosition + sentSize) > sysMemory) //Memory exceeded, need to wrap around and start at 0x000 again
+	{
+		temp = 0;
+		memoryPosition = sentSize;
+
+	} else
+	{
+		memoryPosition += sentSize; //Move the starting position to it's new location after "allocatiion"
+
+
+	}
 
 	return temp; //Return the starting position
-
+	
 }
 
 void* GetProjectorNumber (void* sentArg)
