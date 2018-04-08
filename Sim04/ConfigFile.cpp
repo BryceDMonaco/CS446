@@ -1,5 +1,5 @@
 /*
-	Updated to Sim03
+	Updated to Sim04
 
 */
 
@@ -31,6 +31,8 @@ class ConfigFile
 		void SetProjectorQuantity (int sentValue);
 		void SetHardDriveQuantity (int sentValue);
 		void SetMemoryBlockSize (int sentValue);
+		void SetProcessorQuantum (int sentValue);
+		void SetScheduler (int sentValue); //0=FIFO, 1=Priority, 2=SJF
 
 
 		void SetLogPreferences (bool toFile, bool toMonitor);
@@ -50,6 +52,8 @@ class ConfigFile
 		int GetProjectorQuantity () const;
 		int GetHardDriveQuantity () const;
 		int GetMemoryBlockSize () const;
+		int GetProcessorQuantum () const;
+		int GetScheduler () const;
 
 		bool ShouldLogToFile () const;
 		bool ShouldLogToMonitor () const;
@@ -79,6 +83,10 @@ class ConfigFile
 		int hardDriveQuantity;
 
 		int memoryBlockSize;		//KB
+
+		int processorQuantum;
+
+		int scheduler;				//0=FIFO, 1=Priority, 2=SJF
 
 		bool shouldLogToFile;
 		bool shouldLogToMonitor;
@@ -223,6 +231,22 @@ void ConfigFile::SetMemoryBlockSize (int sentValue)
 
 }
 
+void ConfigFile::SetProcessorQuantum (int sentValue)
+{
+	processorQuantum = sentValue;
+
+	return;
+
+}
+
+void ConfigFile::SetScheduler (int sentValue)
+{
+	scheduler = sentValue;
+
+	return;
+
+}
+
 /////////////////////////////////////////////////////
 /// Access Functions                              ///
 /////////////////////////////////////////////////////
@@ -320,6 +344,18 @@ int ConfigFile::GetHardDriveQuantity () const
 int ConfigFile::GetMemoryBlockSize () const
 {
 	return memoryBlockSize;
+
+}
+
+int ConfigFile::GetProcessorQuantum () const
+{
+	return processorQuantum;
+
+}
+
+int ConfigFile::GetScheduler () const
+{
+	return scheduler;
 
 }
 
