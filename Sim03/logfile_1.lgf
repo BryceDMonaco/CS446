@@ -1,50 +1,48 @@
-0.000099 - Simulator program starting
-0.000753 - OS: preparing process 1
-0.000866 - OS: starting process 1
-0.000952 - Process 1: allocating memory (Run Time: 30ms)
-0.031044 - Process 1: memory allocated at 0x00000000
-0.031314 - Process 1: allocating memory (Run Time: 30ms)
-0.063768 - Process 1: memory allocated at 0x00000080
-0.064026 - Process 1: allocating memory (Run Time: 30ms)
-0.094182 - Process 1: memory allocated at 0x00000100
-0.097233 - Process 1: allocating memory (Run Time: 30ms)
-0.127375 - Process 1: memory allocated at 0x00000180
-0.130341 - Process 1: allocating memory (Run Time: 30ms)
-0.160467 - Process 1: memory allocated at 0x00000200
-0.163358 - Process 1: allocating memory (Run Time: 40ms)
-0.203481 - Process 1: memory allocated at 0x00000280
-0.203723 - Process 1: allocating memory (Run Time: 30ms)
-0.233833 - Process 1: memory allocated at 0x00000300
-0.234392 - Process 1: allocating memory (Run Time: 30ms)
-0.264553 - Process 1: memory allocated at 0x00000380
-0.264943 - Process 1: allocating memory (Run Time: 30ms)
-0.298322 - Process 1: memory allocated at 0x00000400
-0.298574 - Process 1: allocating memory (Run Time: 30ms)
-0.328715 - Process 1: memory allocated at 0x00000480
-0.331842 - Process 1: allocating memory (Run Time: 30ms)
-0.361970 - Process 1: memory allocated at 0x00000500
-0.365560 - Process 1: allocating memory (Run Time: 30ms)
-0.395780 - Process 1: memory allocated at 0x00000580
-0.398993 - Process 1: allocating memory (Run Time: 30ms)
-0.429110 - Process 1: memory allocated at 0x00000600
-0.432395 - Process 1: allocating memory (Run Time: 30ms)
-0.462518 - Process 1: memory allocated at 0x00000680
-0.465836 - Process 1: allocating memory (Run Time: 30ms)
-0.495963 - Process 1: memory allocated at 0x00000700
-0.499222 - Process 1: allocating memory (Run Time: 30ms)
-0.529345 - Process 1: memory allocated at 0x00000780
-0.532697 - Process 1: allocating memory (Run Time: 30ms)
-0.562825 - Process 1: memory allocated at 0x00000000
-0.566177 - Process 1: allocating memory (Run Time: 30ms)
-0.596324 - Process 1: memory allocated at 0x00000080
-0.601376 - Process 1: allocating memory (Run Time: 30ms)
-0.633309 - Process 1: memory allocated at 0x00000100
-0.633616 - Process 1: start processing action (Run Time: 25ms)
-0.658824 - Process 1: end processing action
-0.659074 - Process 1: start hard drive output on HDD 0 (Run Time: 900ms)
-1.559198 - Process 1: end hard drive output
-1.559836 - Process 1: start processing action (Run Time: 90ms)
-1.649956 - Process 1: end processing action
-1.650163 - OS: removing process 1
+0.000052 - Simulator program starting
+0.000580 - OS: preparing process 1
+0.000648 - OS: starting process 1
+0.000699 - Process 1: start processing action (Run Time: 55ms)
+0.055750 - Process 1: end processing action
+0.055997 - Process 1: allocating memory (Run Time: 20ms)
+0.079659 - Process 1: memory allocated at 0x00000000
+0.079866 - Process 1: start monitor output (Run Time: 154ms)
+0.233953 - Process 1: end monitor output
+0.239869 - Process 1: start hard drive input on HDD 0(Run Time: 1200ms)
+1.440174 - Process 1: end hard drive input
+1.440599 - Process 1: start projector output on PROJ 0 (Run Time: 11000ms)
+12.447670 - Process 1: end projector output
+12.448065 - Process 1: allocating memory (Run Time: 40ms)
+12.495649 - Process 1: memory allocated at 0x00000080
+12.495854 - Process 1: start projector output on PROJ 1 (Run Time: 3300ms)
+15.803639 - Process 1: end projector output
+15.803903 - Process 1: allocating memory (Run Time: 30ms)
+15.839657 - Process 1: memory allocated at 0x00000100
+15.839827 - Process 1: start hard drive input on HDD 1(Run Time: 1050ms)
+16.889868 - Process 1: end hard drive input
+16.895992 - Process 1: start hard drive output on HDD 0 (Run Time: 300ms)
+17.199650 - Process 1: end hard drive output
+17.199900 - Process 1: start hard drive output on HDD 1 (Run Time: 2400ms)
+19.603659 - Process 1: end hard drive output
+19.603971 - Process 1: allocating memory (Run Time: 40ms)
+19.644373 - Process 1: memory allocated at 0x00000180
+19.647205 - Process 1: start processing action (Run Time: 30ms)
+19.679766 - Process 1: end processing action
+19.694656 - Process 1: start projector output on PROJ 2 (Run Time: 2200ms)
+21.896997 - Process 1: end projector output
+21.899809 - Process 1: start memory blocking (Run Time: 60ms)
+21.959986 - Process 1: end memory blocking
+21.964140 - Process 1: start keyboard input (Run Time: 1020ms)
+22.987637 - Process 1: end keyboard input
+22.987911 - Process 1: start memory blocking (Run Time: 40ms)
+23.028040 - Process 1: end memory blocking
+23.028252 - Process 1: start processing action (Run Time: 25ms)
+23.053352 - Process 1: end processing action
+23.059423 - Process 1: start processing action (Run Time: 25ms)
+23.084730 - Process 1: end processing action
+23.084948 - Process 1: start hard drive output on HDD 0 (Run Time: 900ms)
+23.987675 - Process 1: end hard drive output
+23.987940 - Process 1: start processing action (Run Time: 90ms)
+24.078035 - Process 1: end processing action
+24.083893 - OS: removing process 1
 (End of config file: ExConfig.conf)
-1.650340 - Simulator program ending
+24.084112 - Simulator program ending
