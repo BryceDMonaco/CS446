@@ -309,7 +309,7 @@ bool RunMetaDataFile ()
 }
 
 //Returns true if successful, false otherwise
-//Attempts to find all 13 lines required for the config file. If even one is missing the function returns false and the program closes.
+//Attempts to find all lines required for the config file. If even one is missing the function returns false and the program closes.
 //Note: This function assumes that the values will not always be in the same order so it must scan in a line and then figure out which line it has
 bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 {
@@ -335,6 +335,8 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 	int projectorQuantityTEMP;
 	int harddriveQuantityTEMP;
 	int memoryBlockSizeTEMP;		//KB
+	int processorQuantumTEMP;
+	int schedulerTEMP;				//0=FIFO, 1=Priority, 2=SJF
 
 	bool shouldLogToFileTEMP = false;
 	bool shouldLogToMonitorTEMP = false;
@@ -363,8 +365,8 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 	}
 
-	//A standard config file should contain exactly 17 lines, first and last are start and end, 15 values
-	for (int i = 0; i < 15; i++)
+	//A standard config file should contain exactly 19 lines, first and last are start and end, 17 values
+	for (int i = 0; i < 17; i++)
 	{
 		if (cfgFile.eof ())
 		{
@@ -540,7 +542,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 			{
 				sscanf(currentLine.c_str(), "Projector quantity:%d", &projectorQuantityTEMP);    			
 
-				cout << "Found pq " << projectorQuantityTEMP << endl;
+				//cout << "Found pq " << projectorQuantityTEMP << endl;
 
 				//break;
 
@@ -548,7 +550,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 			{
 				sscanf(currentLine.c_str(), "Hard drive quantity:%d", &harddriveQuantityTEMP);    			
 
-				cout << "Found HDDq " << harddriveQuantityTEMP << endl;
+				//cout << "Found HDDq " << harddriveQuantityTEMP << endl;
 
 				//break;
 
@@ -579,6 +581,36 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 					sscanf(currentLine.c_str(), "Memory block size {%*s}:%d", &memoryBlockSizeTEMP);
 
 				}
+
+				//break;
+
+			} else if (currentLine.find ("Processor Quantum") != string::npos)
+			{
+				sscanf(currentLine.c_str(), "Processor Quantum Number:%d", &processorQuantumTEMP);    			
+
+				//break;
+
+			} else if (currentLine.find ("CPU Scheduling Code") != string::npos)
+			{
+				if (currentLine.find ("FIFO") != string::npos)
+				{
+					schedulerTEMP = 0;
+
+				} else if (currentLine.find ("PS") != string::npos)
+				{
+					schedulerTEMP = 1;
+
+				} if (currentLine.find ("SJF") != string::npos)
+				{
+					schedulerTEMP = 2;
+
+				} else
+				{
+					cout << "Error: Unrecognized scheduler code, defaulting to FIFO" << endl;
+
+					schedulerTEMP = 0;
+
+				}  			
 
 				//break;
 
@@ -648,6 +680,8 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 		sentFile.SetProjectorQuantity (projectorQuantityTEMP);
 		sentFile.SetHardDriveQuantity (harddriveQuantityTEMP);
 		sentFile.SetMemoryBlockSize (memoryBlockSizeTEMP);
+		sentFile.SetProcessorQuantum (processorQuantumTEMP);
+		sentFile.SetScheduler (schedulerTEMP);
 
 		sentFile.SetLogPreferences (shouldLogToFileTEMP, shouldLogToMonitorTEMP);
 
