@@ -15,7 +15,8 @@
 			Most functions contain cout calls which are commented out, these were used for debug purposes 
 			and are left as comments incase they are needed again as well as to show a bit of the debug process.
 
-	TODO:	- Config file adds processor quantum (does nothing), scheduling code (picks one of three schedulers)
+	TODO:	- (done) Config file adds processor quantum (does nothing), scheduling code (picks one of three schedulers)
+			- Write scheduling algorithms (will need to fully parse the entire mdf, count the commands for each process)
 
 */
 
@@ -24,7 +25,7 @@
 #include <fstream>
 #include <string>
 #include <sstream> 	//Used to convert int memory address to hex
-#include <vector>	//Not actually used in latest version
+#include <vector>	//Used to store the commands for each process
 #include <chrono>	//Used for all of the timers
 #include <cstdlib> 	//Used to generated random int for PCB memory location ()
 #include <iomanip>	//Used with outputting the hex address to the correct size
@@ -54,6 +55,7 @@ vector<ConfigFile> allConfigFiles; //Not used, currently once a config file is d
 
 ProcessControlBlock currentPCB;
 vector<ProcessControlBlock> allPCBs; //This won't get used in Sim02
+int numberOfProcesses = 0;
 
 Clock thisClock;
 chrono::steady_clock::time_point systemStart;
@@ -76,6 +78,7 @@ bool currentlyRunningSystem = false;
 bool currentlyRunningApplication = false;
 
 bool RunMetaDataFile ();										//Loops through the metadata file, calls ParseCommand () and ExecuteCommand ()
+bool RunMetaDataFileV2 ();										//Used in Sim04 and on, runs through entire mdf and stores commands in vectors for each process
 bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile);	//Scans through the config file and imports all of the required data, fails if it can't find all
 bool ParseCommand (string sentCommand);							//Takes a command as a string and parses it and then "executes" it
 //bool ExecuteCommand (MetaDataObject sentCommand);				//Takes a MetaDataObject and "runs" it
@@ -93,6 +96,7 @@ void* GetProjectorNumber (void* sentArg);
 void* GetHardDriveNumber (void* sentArg);
 int RunHardDriveThread ();
 int RunProjectorThread ();
+vector<int> RunScheduler ();
 
 int main (int argc, char* argv[])
 {
@@ -161,7 +165,7 @@ int main (int argc, char* argv[])
 		    //This doesn't get output in Sim02
 		    //OutputConfigFileData (currentConfFile.ShouldLogToFile (), currentConfFile.ShouldLogToMonitor ());
 
-		    RunMetaDataFile ();
+		    RunMetaDataFileV2 ();
 
 		    OutputToLog(string ("(End of config file: ") + argv[i] + ")", true); //Not required output but this helps make the log easier to read with multiple config files
 
@@ -303,6 +307,190 @@ bool RunMetaDataFile ()
 
 
 	} while (!reachedEndOfFile);
+
+	return true;
+
+}
+
+//Returns true if the entire file is parsed correctly
+//Scans in potential commands one at a time (assuming no typos) and sends them to ParseCommand () to see if they're actually commands
+bool RunMetaDataFileV2 ()
+{
+	ifstream mdfFile;
+	mdfFile.open (currentConfFile.GetMDFPath ());
+	string currentLine;
+
+	//OutputToLog ("\nMeta-Data Metrics", true); //No longer used in Sim02
+	//cout << endl << "Meta-Data Metrics" << endl;
+
+	//Check if the file is empty
+	if (mdfFile.eof () || !mdfFile.is_open ())
+	{
+		OutputToLog ("Error: Empty Meta Data File", true);
+		cout << "File attempted to be opened \"" << currentConfFile.GetMDFPath () << "\"" << endl;
+		//cout << "Error: Empty Meta Data File" << endl;
+
+		mdfFile.close ();
+		return false;
+
+	}
+
+	currentLine = ScanNextLine (mdfFile);
+
+	//Check for start line Start Program Meta-Data Code:
+	if (currentLine.find ("Start Program Meta-Data Code:") == string::npos) //True if not found
+	{
+		//First line does not contain start line
+		OutputToLog ("Error: No start program command", true);
+		OutputToLog (string ("Found: ") + currentLine + " in " + currentConfFile.GetMDFPath (), true);
+		//cout << "Error: No start program command" << endl;
+
+
+
+		mdfFile.close ();
+		return false;
+
+	}
+
+	currentLine = ScanNextLine (mdfFile, ';');
+
+	//Check for start command
+	if (currentLine.find ("S{begin}0") == string::npos) //True if not found
+	{
+		//First line does not contain start command
+		OutputToLog ("Error: No start command found", true);
+		//cout << "Error: No start command found" << endl;
+
+		mdfFile.close ();
+		return false;
+
+	} else
+	{
+		//currentPCB = ProcessControlBlock (1, -1); //Defaulted to memory location -1 since it hasn't been assigned yet in mdf
+		//currentPCB.SetState (1);
+		//OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - OS: preparing process " + to_string (currentPCB.GetPID ()), true);
+
+	}
+
+	bool reachedEndOfFile = false;
+
+	do
+	{
+		if (mdfFile.eof ())
+		{
+			OutputToLog ("Error: mdf file ended unexpectedly", true);
+			//cout << "Error: mdf file ended unexpectedly" << endl;
+
+			mdfFile.close ();
+			return false;
+
+		} else
+		{
+			//With ';' delim to read one command at a time
+			currentLine = ScanNextLine (mdfFile, ';');
+
+			//Check if the end of the file was reached
+			if (currentLine.find ("End Program Meta-Data Code.") != string::npos)
+			{
+				reachedEndOfFile = true;
+
+				//OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - OS: removing process " + to_string (currentPCB.GetPID ()), true);
+
+				//currentPCB.SetState (4); //Terminate
+
+				//cout << "Found EOF" << endl;
+
+			} if (currentLine.find ("A{begin}0") != string::npos) //Found a new process
+			{
+				if (currentlyRunningApplication)
+				{
+					cout << "Error: Found A{begin}0 before A{finish}0, exiting." << endl;
+
+					return false;
+
+				} else
+				{
+					currentlyRunningApplication = true;
+
+					//Create new PCB
+					numberOfProcesses++;
+
+					ProcessControlBlock tempPCB = ProcessControlBlock (numberOfProcesses, -1); //Defaulted to memory location -1 since it hasn't been assigned yet in mdf
+					tempPCB.SetState (1);
+
+					allPCBs.push_back (tempPCB); //Add the new PCB to the vector of PCBs
+
+					allPCBs [numberOfProcesses - 1].processCommands.push_back (currentLine);
+
+				}
+
+			} if (currentLine.find ("A{finish}0") != string::npos) //Found end of process
+			{
+				if (!currentlyRunningApplication)
+				{
+					cout << "Error: Found A{finish}0 before A{begin}0, exiting." << endl;
+
+					mdfFile.close ();
+
+					return false;
+
+				} else
+				{
+					allPCBs [numberOfProcesses - 1].processCommands.push_back (currentLine);
+					currentlyRunningApplication = false;
+
+				}
+
+			} else
+			{	
+				//Push the command into the vector of commands for that process
+				allPCBs [numberOfProcesses - 1].processCommands.push_back (currentLine);
+
+			}
+
+		}
+
+	} while (!reachedEndOfFile);
+
+	mdfFile.close ();
+
+	//Run scheduling algorithm
+	vector <int> pcbOrder = RunScheduler ();
+
+	cout << "Found " << allPCBs.size () << " processes. Schedule order is: ";
+
+	for (int i = 0; i < pcbOrder.size (); i++)
+	{
+		cout << pcbOrder [i] << " ";
+
+	}
+
+	cout << endl;
+
+	currentlyRunningSystem = false;
+	currentlyRunningApplication = false;
+
+	//For each Process
+	for (int i = 0; i < allPCBs.size (); i++)
+	{
+		currentPCB = allPCBs [pcbOrder [i]];
+
+		//For each command within that process
+		for (int j = 0; j < currentPCB.processCommands.size (); j++)
+		{
+			string currentCommand = currentPCB.processCommands [j];
+
+			//S=OS, A=Application, P=Process, I=Input, O=Output 
+			if (!ParseCommand (currentCommand))
+			{
+				OutputToLog (string ("There was an error with the command \"" + currentCommand + "\" in PCB " + to_string (pcbOrder [i])), true);
+
+				return false;
+
+			}
+		}
+
+	}
 
 	return true;
 
@@ -600,13 +788,13 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 				{
 					schedulerTEMP = 1;
 
-				} if (currentLine.find ("SJF") != string::npos)
+				} else if (currentLine.find ("SJF") != string::npos)
 				{
 					schedulerTEMP = 2;
 
 				} else
 				{
-					cout << "Error: Unrecognized scheduler code, defaulting to FIFO" << endl;
+					cout << "Error: Unrecognized scheduler code \"" << currentLine << "\" defaulting to FIFO" << endl;
 
 					schedulerTEMP = 0;
 
@@ -1459,4 +1647,100 @@ int RunProjectorThread ()
 
 	return number;
 
+}
+
+//The sorting algorithms for PS and SJF are O(n^2) (where n = number of PCBs). 
+//While this is very inefficient, the number of commands should never be high
+//enough to cause an issue.
+
+//Note: if a PCB has >999999 commands stored then it will never be scheduled by SJF
+vector<int> RunScheduler ()
+{
+	int schedulerCode = currentConfFile.GetScheduler ();
+
+	vector<int> processOrder;
+
+	if (schedulerCode == 0) //FIFO, no change
+	{
+		for (int i = 0; i < allPCBs.size (); i++)
+		{
+			processOrder.push_back (i);
+
+		}
+
+	} else if (schedulerCode == 1) //PS, most commands first
+	{
+		bool processScheduled [allPCBs.size ()];
+
+		//Ensuring that all bools are set to false
+		for (int i = 0; i < allPCBs.size (); i++)
+		{
+			processScheduled [i] = false;
+
+		}
+
+		int currentMax = 0;
+		int currentMaxIndex = 0;
+
+		for (int i = 0; i < allPCBs.size (); i++)
+		{
+			currentMax = 0;
+			currentMaxIndex = 0;
+
+			for (int j = 0; j < allPCBs.size (); j++)
+			{
+				//If a new max is found and that max process is not already scheduled
+				if (allPCBs [j].processCommands.size () > currentMax && !processScheduled [j])
+				{
+					currentMax = allPCBs [j].processCommands.size ();
+					currentMaxIndex = j;
+
+				}
+
+			}
+
+			processScheduled [currentMaxIndex] = true;
+			processOrder.push_back (currentMaxIndex);
+
+		}
+
+	} else if (schedulerCode == 2) //SJF, least commands first
+	{
+		bool processScheduled [allPCBs.size ()];
+
+		//Ensuring that all bools are set to false
+		for (int i = 0; i < allPCBs.size (); i++)
+		{
+			processScheduled [i] = false;
+
+		}
+
+		int currentMin = 0;
+		int currentMinIndex = 0;
+
+		for (int i = 0; i < allPCBs.size (); i++)
+		{
+			currentMin = 999999; //Theoretically this means a process with >999999 commands will never be scheduled but I'm going to assume this will never happen
+			currentMinIndex = 0;
+
+			for (int j = 0; j < allPCBs.size (); j++)
+			{
+				//If a new max is found and that max process is not already scheduled
+				if (allPCBs [j].processCommands.size () < currentMin && !processScheduled [j])
+				{
+					currentMin = allPCBs [j].processCommands.size ();
+					currentMinIndex = j;
+
+				}
+
+			}
+
+			processScheduled [currentMinIndex] = true;
+			processOrder.push_back (currentMinIndex);
+
+		}
+
+	}
+
+	return processOrder;
 }

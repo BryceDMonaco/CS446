@@ -1,0 +1,6 @@
+0.000665 - Simulator program starting
+0.001189 - OS: starting process 3
+Error: A begin command has already been processed
+There was an error with the command "A{begin}0" in PCB 2
+(End of config file: ExConfig.conf)
+0.002956 - Simulator program ending

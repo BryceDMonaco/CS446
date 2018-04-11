@@ -7,6 +7,7 @@
 */
 
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -27,7 +28,7 @@ class ProcessControlBlock
 		int GetState ();
 		string GetStringState ();
 
-		
+		vector<string> processCommands; //Used as a FIFO queue
 
 	private:
 		int pid;
