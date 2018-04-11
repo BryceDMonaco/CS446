@@ -16,7 +16,8 @@
 			and are left as comments incase they are needed again as well as to show a bit of the debug process.
 
 	TODO:	- (done) Config file adds processor quantum (does nothing), scheduling code (picks one of three schedulers)
-			- Write scheduling algorithms (will need to fully parse the entire mdf, count the commands for each process)
+			- (done) Write scheduling algorithms (will need to fully parse the entire mdf, count the commands for each process)
+			- Might need to change how PID is stored, instead of doing it when processes are read in do it when they are executed
 
 */
 
@@ -54,7 +55,7 @@ ConfigFile currentConfFile; //Assuming ScanConfigFile () runs successfully, this
 vector<ConfigFile> allConfigFiles; //Not used, currently once a config file is done it just gets overwritten in the currentConfFile
 
 ProcessControlBlock currentPCB;
-vector<ProcessControlBlock> allPCBs; //This won't get used in Sim02
+vector<ProcessControlBlock> allPCBs;
 int numberOfProcesses = 0;
 
 Clock thisClock;
