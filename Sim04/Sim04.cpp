@@ -25,7 +25,7 @@
 #include <fstream>
 #include <string>
 #include <sstream> 	//Used to convert int memory address to hex
-#include <vector>	//Used to store the commands for each process
+#include <vector>	//Used to store the commands for each process, the collection of PCBs, and the scheduling order
 #include <chrono>	//Used for all of the timers
 #include <cstdlib> 	//Used to generated random int for PCB memory location ()
 #include <iomanip>	//Used with outputting the hex address to the correct size
@@ -77,8 +77,8 @@ int onHardDrive = 0;
 bool currentlyRunningSystem = false;
 bool currentlyRunningApplication = false;
 
-bool RunMetaDataFile ();										//Loops through the metadata file, calls ParseCommand () and ExecuteCommand ()
-bool RunMetaDataFileV2 ();										//Used in Sim04 and on, runs through entire mdf and stores commands in vectors for each process
+bool RunMetaDataFile ();										//(Not used in Sim04 and on, see V2) Loops through the metadata file, calls ParseCommand () and ExecuteCommand ()
+bool RunMetaDataFileV2 ();										//Used in Sim04 and on, runs through entire mdf and stores commands in vectors for each process, calls scheduler, then runs each process in order
 bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile);	//Scans through the config file and imports all of the required data, fails if it can't find all
 bool ParseCommand (string sentCommand);							//Takes a command as a string and parses it and then "executes" it
 //bool ExecuteCommand (MetaDataObject sentCommand);				//Takes a MetaDataObject and "runs" it
@@ -89,14 +89,14 @@ bool OutputToLog (string sentOutput, bool createNewLine);		//Hands output to the
 //float WaitForMicroSeconds (unsigned int sentTime);			//Replaced with pthread version below
 void* WaitForMicroSeconds (void* sentTime);
 float CountToSeconds (unsigned int sentCount);
-float RunTimerThread (long sentTime, char sentDevice);							//Used to reduce duplicate code lines
+float RunTimerThread (long sentTime, char sentDevice);			//Used to reduce duplicate code lines
 //unsigned int GenerateRandomMemoryAddress ();					//Only used in Sim02, deprecated as of Sim03
 unsigned int GetMemoryAddress (unsigned int sentSize);
 void* GetProjectorNumber (void* sentArg);
 void* GetHardDriveNumber (void* sentArg);
 int RunHardDriveThread ();
 int RunProjectorThread ();
-vector<int> RunScheduler ();
+vector<int> RunScheduler ();									//Uses the set of PCBs and the config file to schedule the processes as FIFO, PS, or SJF, returns vector of ints where [0] = the first process to run's index in allPCBs
 
 int main (int argc, char* argv[])
 {
@@ -400,7 +400,7 @@ bool RunMetaDataFileV2 ()
 
 				//cout << "Found EOF" << endl;
 
-			} if (currentLine.find ("A{begin}0") != string::npos) //Found a new process
+			} else if (currentLine.find ("A{begin}0") != string::npos) //Found a new process
 			{
 				if (currentlyRunningApplication)
 				{
@@ -424,7 +424,7 @@ bool RunMetaDataFileV2 ()
 
 				}
 
-			} if (currentLine.find ("A{finish}0") != string::npos) //Found end of process
+			} else if (currentLine.find ("A{finish}0") != string::npos) //Found end of process
 			{
 				if (!currentlyRunningApplication)
 				{
@@ -457,6 +457,8 @@ bool RunMetaDataFileV2 ()
 	//Run scheduling algorithm
 	vector <int> pcbOrder = RunScheduler ();
 
+	//The following is debug output used to check contents of each PCB
+	/*
 	cout << "Found " << allPCBs.size () << " processes. Schedule order is: ";
 
 	for (int i = 0; i < pcbOrder.size (); i++)
@@ -467,8 +469,30 @@ bool RunMetaDataFileV2 ()
 
 	cout << endl;
 
+	for (int i = 0; i < pcbOrder.size (); i++)
+	{
+		cout << "Process " << allPCBs [pcbOrder [i]].GetPID () <<": ";
+
+		for (int j = 0; j < allPCBs [pcbOrder [i]].processCommands.size (); j++)
+		{
+			cout << allPCBs [pcbOrder [i]].processCommands [j] << endl;
+
+		}
+
+	}
+	*/
+
 	currentlyRunningSystem = false;
 	currentlyRunningApplication = false;
+
+	//The original S{begin}0 command gets discarded before it can be stored because no storage exists at that point so it needs to be forced
+	if (!ParseCommand ("S{begin}0"))
+	{
+		OutputToLog (string ("There was an error with the command \"S{begin}0\""), true);
+
+		return false;
+
+	}
 
 	//For each Process
 	for (int i = 0; i < allPCBs.size (); i++)

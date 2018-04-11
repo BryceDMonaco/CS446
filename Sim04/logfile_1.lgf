@@ -1,6 +1,20 @@
-0.000665 - Simulator program starting
-0.001189 - OS: starting process 3
-Error: A begin command has already been processed
-There was an error with the command "A{begin}0" in PCB 2
+0.000039 - Simulator program starting
+0.002893 - OS: starting process 2
+0.003527 - Process 2: start hard drive output on HDD 0 (Run Time: 900ms)
+0.904258 - Process 2: end hard drive output
+0.904469 - OS: starting process 1
+0.904578 - Process 1: start processing action (Run Time: 55ms)
+0.959679 - Process 1: end processing action
+0.959912 - Process 1: allocating memory (Run Time: 20ms)
+0.980045 - Process 1: memory allocated at 0x00000000
+0.980242 - OS: starting process 3
+0.980358 - Process 3: start processing action (Run Time: 20ms)
+1.001571 - Process 3: end processing action
+1.001954 - Process 3: start keyboard input (Run Time: 1080ms)
+2.082085 - Process 3: end keyboard input
+2.082302 - Process 3: allocating memory (Run Time: 40ms)
+2.122416 - Process 3: memory allocated at 0x00000080
+2.122672 - Process 3: start processing action (Run Time: 30ms)
+2.152780 - Process 3: end processing action
 (End of config file: ExConfig.conf)
-0.002956 - Simulator program ending
+2.153139 - Simulator program ending
