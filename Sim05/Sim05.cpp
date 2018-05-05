@@ -15,9 +15,9 @@
 			Most functions contain cout calls which are commented out, these were used for debug purposes 
 			and are left as comments incase they are needed again as well as to show a bit of the debug process.
 
-	TODO:	- (done) Config file adds processor quantum (does nothing), scheduling code (picks one of three schedulers)
-			- (done) Write scheduling algorithms (will need to fully parse the entire mdf, count the commands for each process)
-			- Might need to change how PID is stored, instead of doing it when processes are read in do it when they are executed
+	TODO:	- Program RR and STF algorithms
+			- Reload applications from MDF (should probably store them somewhere else originally and then read from that copy)
+			- 
 
 */
 
@@ -805,7 +805,7 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 
 			} else if (currentLine.find ("Processor Quantum") != string::npos)
 			{
-				sscanf(currentLine.c_str(), "Processor Quantum Number:%d", &processorQuantumTEMP);    			
+				sscanf(currentLine.c_str(), "Processor Quantum Number {msec}:%d", &processorQuantumTEMP);    			
 
 				//break;
 
@@ -822,6 +822,14 @@ bool ScanConfigFile (string cfgFileName, ConfigFile& sentFile)
 				} else if (currentLine.find ("SJF") != string::npos)
 				{
 					schedulerTEMP = 2;
+
+				} else if (currentLine.find ("RR") != string::npos)
+				{
+					schedulerTEMP = 3;
+
+				} else if (currentLine.find ("STR") != string::npos)
+				{
+					schedulerTEMP = 4;
 
 				} else
 				{
@@ -1771,6 +1779,64 @@ vector<int> RunScheduler ()
 
 		}
 
+	} else if (schedulerCode == 3) //RR, do FIFO
+	{
+		for (int i = 0; i < allPCBs.size (); i++)
+		{
+			processOrder.push_back (i);
+
+		}
+
+	} else if (schedulerCode == 4) //STR, least amount of IO
+	{
+		bool processScheduled [allPCBs.size ()];
+
+		//Ensuring that all bools are set to false
+		for (int i = 0; i < allPCBs.size (); i++)
+		{
+			processScheduled [i] = false;
+
+		}
+
+		int currentMin = 0;
+		int currentMinIndex = 0;
+
+		for (int i = 0; i < allPCBs.size (); i++)
+		{
+			currentMin = 999999; //Theoretically this means a process with >999999 commands will never be scheduled but I'm going to assume this will never happen
+			currentMinIndex = 0;
+
+			for (int j = 0; j < allPCBs.size (); j++)
+			{
+				int numberOfIO = 0;
+
+				//Count the number of IO operations in PCB j
+				for (int k = 0; k < allPCBs [j].processCommands.size (); k++)
+				{
+					string command = allPCBs [j].processCommands [k];
+
+					if (command.find ("I") != string::npos || command.find ("O") != string::npos)
+					{
+						numberOfIO++;
+
+					}
+
+				}
+
+				//If a new max is found and that max process is not already scheduled
+				if (numberOfIO < currentMin && !processScheduled [j])
+				{
+					currentMin = numberOfIO;
+					currentMinIndex = j;
+
+				}
+
+			}
+
+			processScheduled [currentMinIndex] = true;
+			processOrder.push_back (currentMinIndex);
+
+		}
 	}
 
 	return processOrder;
