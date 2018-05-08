@@ -30,6 +30,8 @@ class ProcessControlBlock
 
 		vector<string> processCommands; //Used as a FIFO queue
 
+		bool runBefore = false;
+
 	private:
 		int pid;
 		int memoryLocation;

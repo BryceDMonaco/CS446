@@ -1,11 +1,12 @@
 /*
 	Bryce Monaco
 	CS 446
-	Project 4
+	Project 5
 
-	Compile with: makefile ("make" within the Sim04 directory)
+	Compile with: makefile ("make" within the Sim05 directory)
+	!!! THIS PROGRAM ASSUMES ALL ACTIONS ARE ATOMIC !!!
 
-	Notes: 	This program is built on top of Sim03.
+	Notes: 	This program is built on top of Sim04.
 			
 
 			(Sim01 Notes, Kept for reference)
@@ -15,9 +16,9 @@
 			Most functions contain cout calls which are commented out, these were used for debug purposes 
 			and are left as comments incase they are needed again as well as to show a bit of the debug process.
 
-	TODO:	- Program RR and STF algorithms
+	TODO:	- Program RR and STF algorithms (done)
 			- Reload applications from MDF (should probably store them somewhere else originally and then read from that copy)
-			- 
+			- For some reason the program does not load more than once if the join command on line 523 is removed
 
 */
 
@@ -57,6 +58,7 @@ vector<ConfigFile> allConfigFiles; //Not used, currently once a config file is d
 
 ProcessControlBlock currentPCB;
 vector<ProcessControlBlock> allPCBs;
+vector<ProcessControlBlock> initialPCBs;
 int numberOfProcesses = 0;
 
 Clock thisClock;
@@ -70,6 +72,9 @@ pthread_mutex_t lockMonitor;	//Lock used by the monitor thread 		(O)
 pthread_mutex_t lockScanner;	//Lock used by the scanner thread 		(I)
 pthread_mutex_t lockKeyboard;	//Lock used by the keyboard thread 		(I)
 
+//Lock for allPCBs since it gets modified/read by at least two threads
+pthread_mutex_t lockAllPCBs;
+
 float stamp; //Used because I can't figure out how to get a pthread to return a float value
 unsigned int memoryPosition = 0;
 int onProjector = 0;
@@ -78,6 +83,9 @@ int onHardDrive = 0;
 //The following are flag booleans to make sure that there are no extra/missing start or finish commands in the metadata
 bool currentlyRunningSystem = false;
 bool currentlyRunningApplication = false;
+
+//Flag boolean to show that new processes have been loaded
+bool newProcessesArrived = false;
 
 bool RunMetaDataFile ();										//(Not used in Sim04 and on, see V2) Loops through the metadata file, calls ParseCommand () and ExecuteCommand ()
 bool RunMetaDataFileV2 ();										//Used in Sim04 and on, runs through entire mdf and stores commands in vectors for each process, calls scheduler, then runs each process in order
@@ -90,8 +98,11 @@ void OutputConfigFileData (bool toFile, bool toMonitor);		//Outputs the config f
 bool OutputToLog (string sentOutput, bool createNewLine);		//Hands output to the log file AND/OR the monitor
 //float WaitForMicroSeconds (unsigned int sentTime);			//Replaced with pthread version below
 void* WaitForMicroSeconds (void* sentTime);
+void* WaitForMicroSecondsNoStamp (void* sentStruct);
 float CountToSeconds (unsigned int sentCount);
 float RunTimerThread (long sentTime, char sentDevice);			//Used to reduce duplicate code lines
+float RunTimerThreadNoStamp (long sentTime, char sentDevice);			//Used to reduce duplicate code lines
+
 //unsigned int GenerateRandomMemoryAddress ();					//Only used in Sim02, deprecated as of Sim03
 unsigned int GetMemoryAddress (unsigned int sentSize);
 void* GetProjectorNumber (void* sentArg);
@@ -99,6 +110,9 @@ void* GetHardDriveNumber (void* sentArg);
 int RunHardDriveThread ();
 int RunProjectorThread ();
 vector<int> RunScheduler ();									//Uses the set of PCBs and the config file to schedule the processes as FIFO, PS, or SJF, returns vector of ints where [0] = the first process to run's index in allPCBs
+void* ReloadPCBs (void * sentArg); 								//sentArg is never used, should just always be null
+bool CheckAllPCBsEmpty ();
+void* RunLoadThread (void* sentArg);
 
 int main (int argc, char* argv[])
 {
@@ -456,6 +470,9 @@ bool RunMetaDataFileV2 ()
 
 	mdfFile.close ();
 
+	//Store the initial PCBs so they can be re-loaded later
+	initialPCBs = allPCBs;
+
 	//Run scheduling algorithm
 	vector <int> pcbOrder = RunScheduler ();
 
@@ -496,6 +513,80 @@ bool RunMetaDataFileV2 ()
 
 	}
 
+	int onPCB = 0;
+
+	//The following pthread code is to run the load thread
+	pthread_t tid;
+	pthread_attr_t attr;
+
+	pthread_create(&tid, NULL, RunLoadThread, NULL);
+	pthread_join(tid, NULL);
+
+	while (!CheckAllPCBsEmpty ())
+	{
+		if (newProcessesArrived) 	//Stop and reschedule the processes
+		{
+			pthread_mutex_lock(&lockAllPCBs);
+
+			pcbOrder = RunScheduler ();
+
+			newProcessesArrived = false;
+
+			onPCB = 0;
+
+			pthread_mutex_unlock(&lockAllPCBs);
+
+		} else						//Parse the next command
+		{
+			pthread_mutex_lock(&lockAllPCBs);
+
+			currentPCB = allPCBs [pcbOrder [onPCB]];
+
+			if (currentPCB.processCommands.empty ()) //If the PCB has been fully processed
+			{
+				OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - End process " + to_string (currentPCB.GetPID ()), true);
+
+				//Remove the PCB from the vector, it is complete
+				allPCBs.erase (allPCBs.begin () + pcbOrder [0]);
+
+				newProcessesArrived = true; //Force scheduler to re-run
+
+			} else //The PCB still has commands remaining
+			{
+				if (!currentPCB.runBefore)
+				{
+					OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - OS: preparing process " + to_string (currentPCB.GetPID ()), true);
+
+					allPCBs [pcbOrder [onPCB]].runBefore = true; //Need to modify it here because currentPCB is a copy of the original
+
+				}
+
+				string currentCommand = currentPCB.processCommands [0];
+
+				if (!ParseCommand (currentCommand))
+				{
+					OutputToLog (string ("There was an error with the command \"" + currentCommand + "\" in PCB " + to_string (pcbOrder [0])), true);
+
+					return false;
+
+				} else
+				{
+					currentPCB.processCommands.erase (currentPCB.processCommands.begin ());
+					allPCBs [pcbOrder [onPCB]].processCommands.erase (allPCBs [pcbOrder [onPCB]].processCommands.begin ());
+
+				}
+
+			}
+
+			pthread_mutex_unlock(&lockAllPCBs);
+
+		}
+
+		
+
+	}
+
+	/* Used in Sim04
 	//For each Process
 	for (int i = 0; i < allPCBs.size (); i++)
 	{
@@ -522,6 +613,7 @@ bool RunMetaDataFileV2 ()
 		OutputToLog (string (to_string (RunTimerThread (1, 'X'))) + " - End process " + to_string (currentPCB.GetPID ()), true);
 
 	}
+	*/
 
 	return true;
 
@@ -1583,6 +1675,96 @@ void* WaitForMicroSeconds (void* sentStruct)
 
 }
 
+//Does not update the stamp value, only used by load thread
+void* WaitForMicroSecondsNoStamp (void* sentStruct)
+{
+	thread_args* sentArgs = (thread_args*) sentStruct;
+
+	long sentTime = (long) (*sentArgs).count;
+	char sentDevice = (char) (*sentArgs).deviceType;
+
+	//pthread_mutex_lock(&lock);
+
+	if (sentDevice == 'H')
+	{
+		//pthread_mutex_lock(&lock);
+		//Handled already by lockHDD
+
+	} else if (sentDevice == 'P')
+	{
+		//pthread_mutex_lock(&lock);
+		//Handled already by lockProj
+
+	} else if (sentDevice == 'M')
+	{
+		pthread_mutex_lock(&lockMonitor);
+
+	} else if (sentDevice == 'S')
+	{
+		pthread_mutex_lock(&lockScanner);
+
+	} else if (sentDevice == 'K')
+	{
+		pthread_mutex_lock(&lockKeyboard);
+
+	} else
+	{
+		pthread_mutex_lock(&lock);
+
+	}
+
+	long t = (long) sentTime;
+
+	chrono::steady_clock::time_point timer;
+
+	//cout << "Waiting for " << CountToSeconds (t) << " seconds..." << endl;
+
+	auto dur = thisClock.WaitForMicroSeconds (t).time_since_epoch (). count ();
+
+	//cout << "Done!" << endl;
+
+	timer = chrono::steady_clock::now ();
+
+	auto durs = chrono::duration_cast<chrono::microseconds>(timer-systemStart);
+
+	//cout << "dur count = " << CountToSeconds (durs.count ()) << endl;
+
+	//stamp = CountToSeconds (durs.count ());
+
+	//pthread_mutex_unlock(&lock);
+
+	if (sentDevice == 'H')
+	{
+		//pthread_mutex_unlock(&lock);
+		//Handled already by lockHDD
+
+	} else if (sentDevice == 'P')
+	{
+		//pthread_mutex_unlock(&lock);
+		//Handled already by lockProj
+
+	} else if (sentDevice == 'M')
+	{
+		pthread_mutex_unlock(&lockMonitor);
+
+	} else if (sentDevice == 'S')
+	{
+		pthread_mutex_unlock(&lockScanner);
+
+	} else if (sentDevice == 'K')
+	{
+		pthread_mutex_unlock(&lockKeyboard);
+
+	} else
+	{
+		pthread_mutex_unlock(&lock);
+
+	}
+
+	pthread_exit (0);
+
+}
+
 float CountToSeconds (unsigned int sentCount)
 {
 	return (float) sentCount / (float) 1000000;
@@ -1603,6 +1785,24 @@ float RunTimerThread (long sentTime, char sentDevice)
 	pthread_join(tid, NULL);
 
 	return stamp;
+
+}
+
+//Just a function to reduce clutter in code since these lines would have to be anywhere that a timer thread is made
+//This one does not update the stamp value
+float RunTimerThreadNoStamp (long sentTime, char sentDevice)
+{
+	pthread_t tid;
+	pthread_attr_t attr;
+
+	thread_args argsToSend;
+	argsToSend.count = sentTime;
+	argsToSend.deviceType = sentDevice;
+
+	pthread_create(&tid, NULL, WaitForMicroSecondsNoStamp, (void *) &argsToSend);
+	pthread_join(tid, NULL);
+
+	return -1; // Discarded value
 
 }
 
@@ -1658,6 +1858,40 @@ void* GetHardDriveNumber (void * sentArg) //sentArg is never used, should just a
 
 }
 
+void* ReloadPCBs (void * sentArg) //sentArg is never used, should just always be null
+{
+	vector<ProcessControlBlock> tempPCBs = initialPCBs;
+	
+	//Lock allPCBs so it's size doesn't change
+	pthread_mutex_lock(&lockAllPCBs);
+
+	int allSize = allPCBs.size ();
+
+	//Assign the new PIDs
+	for (int i = allSize; i < (allSize + initialPCBs.size ()); i++)
+	{
+		tempPCBs [i - allSize].SetPID (i);
+
+	}
+
+	//Push the newly loaded PCBs onto allPCBs
+	for (int i = 0; i < tempPCBs.size (); i++)
+	{
+		allPCBs.push_back (tempPCBs [i]);
+
+	}
+
+	//Set a flag so that the loop running the PCBs knows to stop, and reschedule
+	newProcessesArrived = true;
+
+	//Unlock allPCBs
+	pthread_mutex_unlock(&lockAllPCBs);
+
+
+	return NULL;
+
+}
+
 int RunHardDriveThread ()
 {
 	pthread_t tid;
@@ -1699,6 +1933,7 @@ vector<int> RunScheduler ()
 
 	vector<int> processOrder;
 
+	//NOTE: scheduler code should always be 3 or 4 for Sim05
 	if (schedulerCode == 0) //FIFO, no change
 	{
 		for (int i = 0; i < allPCBs.size (); i++)
@@ -1840,4 +2075,37 @@ vector<int> RunScheduler ()
 	}
 
 	return processOrder;
+}
+
+//Used to check the variable safely
+bool CheckAllPCBsEmpty ()
+{
+	pthread_mutex_lock(&lockAllPCBs);
+
+	bool state = allPCBs.empty ();
+
+	pthread_mutex_unlock(&lockAllPCBs);
+
+	return state;
+
+}
+
+void* RunLoadThread (void * sentArg) //sentArg is never used, should just always be null
+{
+	for (int i = 0; i < 10; i++)
+	{
+		cout << endl << "LOAD" << endl;
+
+		//RunTimerThreadNoStamp ((long) 10, 'H');
+
+		pthread_t tid;
+		pthread_attr_t attr;
+
+		pthread_create(&tid, NULL, ReloadPCBs, NULL);
+		pthread_join(tid, NULL);		
+
+	}
+
+	return NULL;
+
 }

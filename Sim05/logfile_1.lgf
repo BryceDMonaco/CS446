@@ -1,26 +1,256 @@
-0.000047 - Simulator program starting
-0.000478 - OS: preparing process 3
-0.000599 - OS: starting process 3
-0.000713 - Process 3: start processing action (Run Time: 20ms)
-0.020819 - Process 3: end processing action
-0.022189 - Process 3: start keyboard input (Run Time: 1080ms)
-1.102856 - Process 3: end keyboard input
-1.103070 - Process 3: allocating memory (Run Time: 40ms)
-1.143192 - Process 3: memory allocated at 0x00000000
-1.143467 - Process 3: start processing action (Run Time: 30ms)
-1.173602 - Process 3: end processing action
-1.173911 - End process 3
-1.174054 - OS: preparing process 1
-1.174168 - OS: starting process 1
-1.174279 - Process 1: start processing action (Run Time: 55ms)
-1.229381 - Process 1: end processing action
-1.230238 - Process 1: allocating memory (Run Time: 20ms)
-1.250351 - Process 1: memory allocated at 0x00000080
-1.250635 - End process 1
-1.250777 - OS: preparing process 2
-1.250892 - OS: starting process 2
-1.251017 - Process 2: start hard drive output on HDD 0 (Run Time: 900ms)
-2.151119 - Process 2: end hard drive output
-2.151331 - End process 2
+0.000107 - Simulator program starting
+0.001842 - OS: preparing process 1
+0.002017 - OS: starting process 1
+0.002184 - Process 1: start processing action (Run Time: 55ms)
+0.057352 - Process 1: end processing action
+0.057580 - Process 1: allocating memory (Run Time: 20ms)
+0.080621 - Process 1: memory allocated at 0x00000000
+0.080861 - End process 1
+0.081288 - OS: preparing process 3
+0.081408 - OS: starting process 3
+0.081523 - Process 3: start processing action (Run Time: 55ms)
+0.136722 - Process 3: end processing action
+0.137034 - Process 3: allocating memory (Run Time: 20ms)
+0.157178 - Process 3: memory allocated at 0x00000080
+0.157427 - End process 3
+0.157832 - OS: preparing process 6
+0.157953 - OS: starting process 6
+0.158068 - Process 6: start processing action (Run Time: 55ms)
+0.213190 - Process 6: end processing action
+0.213462 - Process 6: allocating memory (Run Time: 20ms)
+0.233719 - Process 6: memory allocated at 0x00000100
+0.233987 - End process 6
+0.234393 - OS: preparing process 9
+0.234521 - OS: starting process 9
+0.234639 - Process 9: start processing action (Run Time: 55ms)
+0.289751 - Process 9: end processing action
+0.289992 - Process 9: allocating memory (Run Time: 20ms)
+0.310131 - Process 9: memory allocated at 0x00000180
+0.310454 - End process 9
+0.310830 - OS: preparing process 12
+0.310951 - OS: starting process 12
+0.311066 - Process 12: start processing action (Run Time: 55ms)
+0.366175 - Process 12: end processing action
+0.366399 - Process 12: allocating memory (Run Time: 20ms)
+0.386538 - Process 12: memory allocated at 0x00000200
+0.386797 - End process 12
+0.387158 - OS: preparing process 15
+0.387282 - OS: starting process 15
+0.387398 - Process 15: start processing action (Run Time: 55ms)
+0.442507 - Process 15: end processing action
+0.442767 - Process 15: allocating memory (Run Time: 20ms)
+0.462905 - Process 15: memory allocated at 0x00000280
+0.463168 - End process 15
+0.463520 - OS: preparing process 18
+0.463670 - OS: starting process 18
+0.464244 - Process 18: start processing action (Run Time: 55ms)
+0.519583 - Process 18: end processing action
+0.519807 - Process 18: allocating memory (Run Time: 20ms)
+0.539941 - Process 18: memory allocated at 0x00000300
+0.540326 - End process 18
+0.540687 - OS: preparing process 21
+0.540811 - OS: starting process 21
+0.540927 - Process 21: start processing action (Run Time: 55ms)
+0.596043 - Process 21: end processing action
+0.596338 - Process 21: allocating memory (Run Time: 20ms)
+0.617349 - Process 21: memory allocated at 0x00000380
+0.617643 - End process 21
+0.618048 - OS: preparing process 24
+0.620578 - OS: starting process 24
+0.621925 - Process 24: start processing action (Run Time: 55ms)
+0.678717 - Process 24: end processing action
+0.678976 - Process 24: allocating memory (Run Time: 20ms)
+0.699260 - Process 24: memory allocated at 0x00000400
+0.699496 - End process 24
+0.699766 - OS: preparing process 27
+0.699870 - OS: starting process 27
+0.699974 - Process 27: start processing action (Run Time: 55ms)
+0.755073 - Process 27: end processing action
+0.755378 - Process 27: allocating memory (Run Time: 20ms)
+0.775532 - Process 27: memory allocated at 0x00000480
+0.776586 - End process 27
+0.777185 - OS: preparing process 30
+0.777353 - OS: starting process 30
+0.777480 - Process 30: start processing action (Run Time: 55ms)
+0.832649 - Process 30: end processing action
+0.833756 - Process 30: allocating memory (Run Time: 20ms)
+0.853941 - Process 30: memory allocated at 0x00000500
+0.854366 - End process 30
+0.854839 - OS: preparing process 2
+0.855118 - OS: starting process 2
+0.855343 - Process 2: start hard drive output on HDD 0 (Run Time: 900ms)
+1.755448 - Process 2: end hard drive output
+1.755733 - End process 2
+1.755990 - OS: preparing process 3
+1.756097 - OS: starting process 3
+1.756203 - Process 3: start processing action (Run Time: 20ms)
+1.777904 - Process 3: end processing action
+1.778290 - Process 3: start keyboard input (Run Time: 1080ms)
+2.858435 - Process 3: end keyboard input
+2.858801 - Process 3: allocating memory (Run Time: 40ms)
+2.898941 - Process 3: memory allocated at 0x00000580
+2.899444 - Process 3: start processing action (Run Time: 30ms)
+2.929620 - Process 3: end processing action
+2.929901 - End process 3
+2.930173 - OS: preparing process 4
+2.930296 - OS: starting process 4
+2.930425 - Process 4: start hard drive output on HDD 1 (Run Time: 900ms)
+3.830529 - Process 4: end hard drive output
+3.830856 - End process 4
+3.831118 - OS: preparing process 5
+3.831236 - OS: starting process 5
+3.831345 - Process 5: start processing action (Run Time: 20ms)
+3.851448 - Process 5: end processing action
+3.851759 - Process 5: start keyboard input (Run Time: 1080ms)
+4.931906 - Process 5: end keyboard input
+4.932221 - Process 5: allocating memory (Run Time: 40ms)
+4.972371 - Process 5: memory allocated at 0x00000600
+4.972687 - Process 5: start processing action (Run Time: 30ms)
+5.002881 - Process 5: end processing action
+5.005008 - End process 5
+5.005673 - OS: preparing process 7
+5.005914 - OS: starting process 7
+5.006182 - Process 7: start hard drive output on HDD 0 (Run Time: 900ms)
+5.906297 - Process 7: end hard drive output
+5.906568 - End process 7
+5.906795 - OS: preparing process 8
+5.906902 - OS: starting process 8
+5.907005 - Process 8: start processing action (Run Time: 20ms)
+5.927103 - Process 8: end processing action
+5.927334 - Process 8: start keyboard input (Run Time: 1080ms)
+7.007470 - Process 8: end keyboard input
+7.007755 - Process 8: allocating memory (Run Time: 40ms)
+7.047991 - Process 8: memory allocated at 0x00000680
+7.048344 - Process 8: start processing action (Run Time: 30ms)
+7.078475 - Process 8: end processing action
+7.078749 - End process 8
+7.078969 - OS: preparing process 10
+7.079089 - OS: starting process 10
+7.079220 - Process 10: start hard drive output on HDD 1 (Run Time: 900ms)
+7.979327 - Process 10: end hard drive output
+7.979609 - End process 10
+7.979831 - OS: preparing process 11
+7.979946 - OS: starting process 11
+7.980056 - Process 11: start processing action (Run Time: 20ms)
+8.000159 - Process 11: end processing action
+8.001046 - Process 11: start keyboard input (Run Time: 1080ms)
+9.081408 - Process 11: end keyboard input
+9.081781 - Process 11: allocating memory (Run Time: 40ms)
+9.121973 - Process 11: memory allocated at 0x00000700
+9.122561 - Process 11: start processing action (Run Time: 30ms)
+9.152736 - Process 11: end processing action
+9.153025 - End process 11
+9.153229 - OS: preparing process 13
+9.153377 - OS: starting process 13
+9.153506 - Process 13: start hard drive output on HDD 0 (Run Time: 900ms)
+10.053608 - Process 13: end hard drive output
+10.054382 - End process 13
+10.054614 - OS: preparing process 14
+10.054741 - OS: starting process 14
+10.054856 - Process 14: start processing action (Run Time: 20ms)
+10.074961 - Process 14: end processing action
+10.075209 - Process 14: start keyboard input (Run Time: 1080ms)
+11.155347 - Process 14: end keyboard input
+11.155631 - Process 14: allocating memory (Run Time: 40ms)
+11.195764 - Process 14: memory allocated at 0x00000780
+11.196030 - Process 14: start processing action (Run Time: 30ms)
+11.226294 - Process 14: end processing action
+11.226570 - End process 14
+11.226770 - OS: preparing process 16
+11.226894 - OS: starting process 16
+11.227156 - Process 16: start hard drive output on HDD 1 (Run Time: 900ms)
+12.127280 - Process 16: end hard drive output
+12.127560 - End process 16
+12.127729 - OS: preparing process 17
+12.127925 - OS: starting process 17
+12.128037 - Process 17: start processing action (Run Time: 20ms)
+12.148138 - Process 17: end processing action
+12.148414 - Process 17: start keyboard input (Run Time: 1080ms)
+13.228554 - Process 17: end keyboard input
+13.228870 - Process 17: allocating memory (Run Time: 40ms)
+13.269043 - Process 17: memory allocated at 0x00000000
+13.269441 - Process 17: start processing action (Run Time: 30ms)
+13.299594 - Process 17: end processing action
+13.299822 - End process 17
+13.299996 - OS: preparing process 19
+13.300114 - OS: starting process 19
+13.300244 - Process 19: start hard drive output on HDD 0 (Run Time: 900ms)
+14.200350 - Process 19: end hard drive output
+14.200752 - End process 19
+14.200980 - OS: preparing process 20
+14.201117 - OS: starting process 20
+14.201392 - Process 20: start processing action (Run Time: 20ms)
+14.221546 - Process 20: end processing action
+14.221818 - Process 20: start keyboard input (Run Time: 1080ms)
+15.301957 - Process 20: end keyboard input
+15.302697 - Process 20: allocating memory (Run Time: 40ms)
+15.342870 - Process 20: memory allocated at 0x00000080
+15.343154 - Process 20: start processing action (Run Time: 30ms)
+15.373331 - Process 20: end processing action
+15.373572 - End process 20
+15.373735 - OS: preparing process 22
+15.373855 - OS: starting process 22
+15.373985 - Process 22: start hard drive output on HDD 1 (Run Time: 900ms)
+16.274092 - Process 22: end hard drive output
+16.274530 - End process 22
+16.274734 - OS: preparing process 23
+16.274858 - OS: starting process 23
+16.274973 - Process 23: start processing action (Run Time: 20ms)
+16.295076 - Process 23: end processing action
+16.295815 - Process 23: start keyboard input (Run Time: 1080ms)
+17.375980 - Process 23: end keyboard input
+17.376328 - Process 23: allocating memory (Run Time: 40ms)
+17.416515 - Process 23: memory allocated at 0x00000100
+17.416832 - Process 23: start processing action (Run Time: 30ms)
+17.446976 - Process 23: end processing action
+17.447275 - End process 23
+17.447439 - OS: preparing process 25
+17.447563 - OS: starting process 25
+17.447832 - Process 25: start hard drive output on HDD 0 (Run Time: 900ms)
+18.347956 - Process 25: end hard drive output
+18.348246 - End process 25
+18.348415 - OS: preparing process 26
+18.348536 - OS: starting process 26
+18.348660 - Process 26: start processing action (Run Time: 20ms)
+18.368765 - Process 26: end processing action
+18.369020 - Process 26: start keyboard input (Run Time: 1080ms)
+19.449160 - Process 26: end keyboard input
+19.449448 - Process 26: allocating memory (Run Time: 40ms)
+19.489584 - Process 26: memory allocated at 0x00000180
+19.489815 - Process 26: start processing action (Run Time: 30ms)
+19.520096 - Process 26: end processing action
+19.520325 - End process 26
+19.520451 - OS: preparing process 28
+19.520559 - OS: starting process 28
+19.520685 - Process 28: start hard drive output on HDD 1 (Run Time: 900ms)
+20.420792 - Process 28: end hard drive output
+20.421469 - End process 28
+20.421640 - OS: preparing process 29
+20.421759 - OS: starting process 29
+20.421867 - Process 29: start processing action (Run Time: 20ms)
+20.441980 - Process 29: end processing action
+20.442280 - Process 29: start keyboard input (Run Time: 1080ms)
+21.522560 - Process 29: end keyboard input
+21.522903 - Process 29: allocating memory (Run Time: 40ms)
+21.563105 - Process 29: memory allocated at 0x00000200
+21.563417 - Process 29: start processing action (Run Time: 30ms)
+21.593693 - Process 29: end processing action
+21.593975 - End process 29
+21.594130 - OS: preparing process 31
+21.594273 - OS: starting process 31
+21.594545 - Process 31: start hard drive output on HDD 0 (Run Time: 900ms)
+22.494663 - Process 31: end hard drive output
+22.494946 - End process 31
+22.495081 - OS: preparing process 32
+22.495184 - OS: starting process 32
+22.495291 - Process 32: start processing action (Run Time: 20ms)
+22.515478 - Process 32: end processing action
+22.515711 - Process 32: start keyboard input (Run Time: 1080ms)
+23.595844 - Process 32: end keyboard input
+23.596195 - Process 32: allocating memory (Run Time: 40ms)
+23.636353 - Process 32: memory allocated at 0x00000280
+23.636599 - Process 32: start processing action (Run Time: 30ms)
+23.666733 - Process 32: end processing action
+23.666969 - End process 32
 (End of config file: ExConfig.conf)
-2.151504 - Simulator program ending
+23.667192 - Simulator program ending
